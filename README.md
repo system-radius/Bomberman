@@ -16,6 +16,7 @@ There are N players (human or AI, tho humans are first priority), that can place
 
 ---
 ### Board
+
 What can a board do?
 - Load playing field
 - Render objects
@@ -35,6 +36,7 @@ What does a board have?
 ---
 ### Game Objects
 `// GameObject class is an abstract class and cannot do anything on its own, just a convenient way to allow objects to interact with each other`
+
 What can game objects do?
 - Move (depending on their velocity)
 - Update
@@ -51,6 +53,7 @@ What do game objects have?
 ---
 ### Player
 `// Inherits from the GameObject`
+
 What can a player do?
 - Place bomb (on click of a button /  key, place a bomb on the current player's rounded position)
 - Remove bomb (called upon a player's bomb being destroyed / triggered, regardless of where the destruction came from)
@@ -77,6 +80,7 @@ What does a player have?
 ---
 ### Blocks
 `Inherits from the GameObject`
+
 What can blocks do?
 - Collide with player (Basically, if it is a block, it can collide with a player)
 
@@ -86,6 +90,7 @@ What do blocks have?
 ---
 #### Bombs
 `// Inherits from Block class`
+
 What can bombs do?
 - Explode (inflict damage to other objects basing on the range of fire power)
 
@@ -96,6 +101,7 @@ What do bombs have?
 ---
 #### Soft blocks
 `// Inherits from Block class`
+
 What can soft blocks do?
 - What normal blocks do
 
@@ -106,6 +112,7 @@ What do soft blocks have?
 ---
 #### Hard blocks
 `// Inherits from Block class`
+
 What can hard blocks do?
 - What normal blocks do
 
@@ -116,6 +123,7 @@ What do hard blocks have?
 ---
 #### Perma blocks
 `// if the Block class is not abstract, then perma block and Block are one and the same`
+
 What can perma blocks do?
 - What normal blocks do
 - Cannot be destroyed (override receive damage method to cancel any damage being received)
@@ -127,6 +135,7 @@ What do perma blocks have?
 ---
 #### Power ups
 `// Inherits from Block class`
+
 What can power ups do?
 - Receives damage from fire
 - Gets consumed from collision with player (after consumption, the power up receives damage to remove it from the game)
