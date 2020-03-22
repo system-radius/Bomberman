@@ -8,10 +8,15 @@ import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.utils.Disposable;
 import com.system.radius.objects.AbstractBomberObject;
 import com.system.radius.objects.board.WorldConstants;
+import com.system.radius.objects.players.Player;
+
+import java.util.List;
 
 public class Block extends AbstractBomberObject implements Disposable {
 
   protected final static long DESTROY_TIMER = 1000;
+
+  protected List<Player> players;
 
   protected Texture spriteSheet;
 
@@ -75,7 +80,7 @@ public class Block extends AbstractBomberObject implements Disposable {
     return bounds;
   }
 
-  public boolean isActiveCollision() {
+  public boolean isActiveCollision(Player player) {
     return activeCollision;
   }
 
