@@ -7,6 +7,7 @@ import com.badlogic.gdx.InputMultiplexer;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.MathUtils;
+import com.badlogic.gdx.utils.Logger;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
 import com.system.radius.ai.Ai;
@@ -20,6 +21,7 @@ import com.system.radius.objects.board.BoardState;
 import com.system.radius.objects.board.WorldConstants;
 import com.system.radius.objects.players.Player;
 import com.system.radius.objects.players.Player1;
+import com.system.radius.utils.BombermanLogger;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -36,6 +38,8 @@ public class GameScreen extends AbstractScreen {
 
   private List<Player> players;
 
+  private List<Ai> ais;
+
   private Ai ai;
 
   public GameScreen(Game game) {
@@ -45,14 +49,22 @@ public class GameScreen extends AbstractScreen {
 
   public void reset() {
 
+    Gdx.app.setApplicationLogger(new BombermanLogger());
+    Gdx.app.setLogLevel(Logger.INFO);
+
     boardState = BoardState.getInstance();
     boardState.reset();
     boardState.addPlayer(new Player1(1f * scale, 1f * scale, scale));
-    ai = new Ai(new Player1((worldWidth - 2) * scale, (worldHeight - 2) * scale, scale));
+    ais = new ArrayList<>();
+//    ais.add(new Ai(new Player1(1f * scale, 1f * scale, scale)));
+    ais.add(new Ai(new Player1((worldWidth - 2) * scale, (worldHeight - 2) * scale, scale)));
+//    ai = new Ai(new Player1((worldWidth - 2) * scale, (worldHeight - 2) * scale, scale));
 
     players = new ArrayList<>(boardState.getPlayers());
 
-    boardState.addPlayer(ai.getPlayer());
+    for (Ai ai : ais) {
+      boardState.addPlayer(ai.getPlayer());
+    }
 
     float spacing = 2f;
 
@@ -98,11 +110,13 @@ public class GameScreen extends AbstractScreen {
   @Override
   public void show() {
 
-    InputMultiplexer multiplexer = new InputMultiplexer();
-    multiplexer.addProcessor(new Player1Controller(players.get(0)));
-//    multiplexer.addProcessor(new Player2Controller());
+    if (players.size() > 0) {
+      InputMultiplexer multiplexer = new InputMultiplexer();
+      multiplexer.addProcessor(new Player1Controller(players.get(0)));
+      //    multiplexer.addProcessor(new Player2Controller());
 
-    Gdx.input.setInputProcessor(multiplexer);
+      Gdx.input.setInputProcessor(multiplexer);
+    }
 
     shapeRenderer = new ShapeRenderer();
 
@@ -133,7 +147,9 @@ public class GameScreen extends AbstractScreen {
       player.update(delta);
     }
 
-    ai.update(delta);
+    for (Ai ai : ais) {
+      ai.update(delta);
+    }
 
     updateCamera();
 
@@ -148,7 +164,9 @@ public class GameScreen extends AbstractScreen {
 
     spriteBatch.begin();
     drawPlayer(delta);
-    ai.draw(spriteBatch, delta);
+    for (Ai ai : ais) {
+      ai.draw(spriteBatch, delta);
+    }
     spriteBatch.end();
 
   }
@@ -199,9 +217,10 @@ public class GameScreen extends AbstractScreen {
     float effectiveViewportWidth = camera.viewportWidth / 2f;
     float effectiveViewportHeight = camera.viewportHeight / 2f;
 
-    camera.position.x = players.get(0).getX();
-    camera.position.y = players.get(0).getY();
-
+    if (players.size() > 0) {
+      camera.position.x = players.get(0).getX();
+      camera.position.y = players.get(0).getY();
+    }
     camera.position.x = MathUtils.clamp(camera.position.x, effectiveViewportWidth,
         scaledWorldWidth - effectiveViewportWidth);
     camera.position.y = MathUtils.clamp(camera.position.y, effectiveViewportHeight,
