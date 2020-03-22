@@ -1,6 +1,5 @@
 package com.system.radius.objects.players;
 
-import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.system.radius.objects.board.BoardState;
 
 public class Player1 extends Player {
