@@ -56,6 +56,16 @@ public class AStarUtils {
     return instance.findPathInternal(board, source, target);
   }
 
+  public static List<Node> findShortestPath(int[][] board, Node source, Node target) {
+
+    if (instance == null) {
+      instance = new AStarUtils();
+    }
+
+    return instance.findPathInternal(board, source.getX(), source.getY(), target.getX(),
+        target.getY());
+  }
+
   private List<Node> findPathInternal(int[][] board, AbstractBomberObject source,
                                       AbstractBomberObject target) {
 
@@ -92,8 +102,8 @@ public class AStarUtils {
 
     }
 
-    return new ArrayList<>();
-
+    // The moves are exhausted, and there is no way to reach the target.
+    return null;
   }
 
   private List<Node> fixPath(Node node) {
@@ -108,8 +118,8 @@ public class AStarUtils {
       path.add(0, parent);
     }
 
+    // The target is reachable.
     return path;
-
   }
 
   private void addChildrenToOpenList(Node parent) {
@@ -170,7 +180,7 @@ public class AStarUtils {
     for (int i = 0; i < maze.length; i++) {
       for (int j = 0; j < maze[i].length; j++) {
 
-        switch(maze[i][j]) {
+        switch (maze[i][j]) {
           case -1:
             System.out.print("x ");
             break;
