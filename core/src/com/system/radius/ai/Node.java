@@ -74,6 +74,10 @@ public class Node implements Comparable<Node> {
     this.parent = parent;
   }
 
+  public float getCost() {
+    return h + g;
+  }
+
   @Override
   public String toString() {
 
@@ -82,6 +86,6 @@ public class Node implements Comparable<Node> {
 
   @Override
   public int compareTo(Node that) {
-    return Float.compare(this.h + this.g, that.h + that.g);
+    return Float.compare(this.getCost(), that.getCost());
   }
 }

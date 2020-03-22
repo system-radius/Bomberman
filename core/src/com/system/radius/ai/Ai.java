@@ -1,13 +1,14 @@
 package com.system.radius.ai;
 
 import com.badlogic.gdx.graphics.g2d.Batch;
+import com.badlogic.gdx.utils.Logger;
 import com.system.radius.ai.action.Action;
 import com.system.radius.ai.action.BombPlayerAction;
+import com.system.radius.ai.action.DefenseAction;
 import com.system.radius.objects.board.BoardState;
 import com.system.radius.objects.board.WorldConstants;
-import com.system.radius.objects.bombs.Bomb;
 import com.system.radius.objects.players.Player;
-import com.system.radius.utils.AStarUtils;
+import com.system.radius.utils.NodeUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -17,7 +18,9 @@ import java.util.List;
  */
 public class Ai {
 
-  private static final long PATH_CHANGE_INTERVAL = 100;
+  private static final Logger LOGGER = new Logger(Ai.class.getSimpleName());
+
+  private static final long PATH_CHANGE_INTERVAL = 250;
 
   private List<Action> actionList;
 
@@ -42,7 +45,7 @@ public class Ai {
 
     initializeActions();
 
-    player.setSpeed(1);
+    player.setSpeed(3);
   }
 
   private void initializeActions() {
@@ -50,129 +53,20 @@ public class Ai {
     actionList = new ArrayList<>();
 
     actionList.add(new BombPlayerAction(player));
+    actionList.add(new DefenseAction(player));
   }
 
-  private int[][] constructBoardRep() {
-
-    int worldHeight = (int) WorldConstants.WORLD_HEIGHT;
-    int worldWidth = (int) WorldConstants.WORLD_WIDTH;
-
-    int[][] intBoard = new int[worldHeight][worldWidth];
-    char[][] charBoard = boardState.getBoardRep();
-
-    int speedLevel = (int) player.getSpeedLevel();
-    int cost = (int) Player.SPEED_COUNTER - speedLevel;
-
-    int multiSpeedLevel = speedLevel * 10;
-
-    // Retrieve the base board representation.
-    for (int i = 0; i < worldHeight; i++) {
-      for (int j = 0; j < worldWidth; j++) {
-
-        if (charBoard[i][j] != WorldConstants.BOARD_EMPTY) {
-          // Mark everything else as unpassable.
-          intBoard[i][j] = -1;
-        } else {
-          // Empty spaces cost movement depending on the character's speed level.
-          intBoard[i][j] = cost;
-        }
-
-      }
-    }
-
-    int playerX = boardState.getExactX(player);
-    int playerY = boardState.getExactY(player);
-
-    // Apply the bomb's fire ranges' cost.
-    for (int i = -multiSpeedLevel; i <= multiSpeedLevel; i++) {
-      int y = playerY + i;
-
-      // Out-of-bounds checking
-      if (y < 0 || y >= worldHeight) {
-        continue;
-      }
-
-      for (int j = -multiSpeedLevel; j <= multiSpeedLevel; j++) {
-
-        int x = playerX + j;
-
-        // Out-of-bounds + object of interest checking.
-        if (x < 0 || x >= worldWidth || charBoard[playerY + i][playerX + j] != WorldConstants.BOARD_BOMB) {
-          continue;
-        }
-
-        // The object marked by (x, y) is sure to be a bomb instance.
-        Bomb bomb = (Bomb) boardState.getObject(x, y);
-        bomb.updateBoardCost(intBoard, speedLevel);
-
-      }
-    }
-
-    return intBoard;
-  }
-
-  private void findPathToEnemy(Player enemy) {
-
-    currentPath = AStarUtils.findShortestPath(constructBoardRep(), player, enemy);
-    consumedMove = true;
-
-  }
-
-  private boolean detectPlayer(int detectionRange) {
-
-    int playerX = boardState.getExactX(player);
-    int playerY = boardState.getExactY(player);
-
-    int playerMinX = playerX - detectionRange;
-    int playerMaxX = playerX + detectionRange;
-
-    int playerMinY = playerY - detectionRange;
-    int playerMaxY = playerY + detectionRange;
-
-    Player trackedEnemy = null;
-
-    int diffX = Integer.MAX_VALUE;
-    int diffY = Integer.MAX_VALUE;
-
-    List<Player> players = boardState.getPlayers();
-    for (Player enemy : players) {
-
-      if (player.equals(enemy)) {
-        continue;
-      }
-
-      int enemyX = boardState.getExactX(enemy);
-      int enemyY = boardState.getExactY(enemy);
-
-      if (enemyX >= playerMinX && enemyX <= playerMaxX && enemyY >= playerMinY && enemyY <= playerMaxY) {
-
-        int tempX = Math.abs(enemyX - playerX);
-        int tempY = Math.abs(enemyY - playerY);
-
-        if (tempX < diffX && tempY < diffY) {
-
-          trackedEnemy = enemy;
-          diffX = tempX;
-          diffY = tempY;
-
-        }
-      }
-
-    }
-
-    return trackedEnemy != null;
-  }
-
-  /**
-   * What does the AI intend to do?
-   */
-  private void decide() {
+  private void chooseAction(boolean chained) {
 
     Action todo = null;
 
     // At least one action should be doable.
     for (Action action : actionList) {
-      if (action.isDoable()) {
+
+      boolean doable = chained ? action.isDoable(currentAction.getHypotheticalBoard()) :
+          action.isDoable();
+
+      if (doable) {
         todo = action;
         break;
       }
@@ -185,50 +79,57 @@ public class Ai {
       currentPath.clear();
     }
 
-    // This is going to be changed for a more dynamic approach.
-//    int detectionRange = 5;
-//
-//    if (detectPlayer(detectionRange)) {
-//      findPathToEnemy(trackedEnemy);
-////      return;
-//    }
-//
-//    int playerX = boardState.getExactX(player);
-//    int playerY = boardState.getExactY(player);
-//
-//    for (int i = -detectionRange; i <= detectionRange; i++) {
-//
-//      int y = playerY + i;
-//      if (y < 0 || y >= WorldConstants.WORLD_HEIGHT) {
-//        continue;
-//      }
-//
-//      for (int j = -detectionRange; j <= detectionRange; j++) {
-//
-//        int x = playerX + j;
-//        if (x < 0 || x >= WorldConstants.WORLD_WIDTH) {
-//          continue;
-//        }
-//
-//      }
-//
-//    }
+  }
+
+  /**
+   * What does the AI intend to do?
+   */
+  private void decide() {
+
+    if (currentAction != null && currentAction.isDoable()) {
+      currentPath = currentAction.getActionPath();
+
+      if (currentAction instanceof DefenseAction && currentAction.isComplete()) {
+        chooseAction(true);
+      }
+
+      return;
+    }
+
+    chooseAction(false);
 
   }
 
   private void move() {
 
     if (consumedMove) {
-      currentMove = currentPath.size() > 0 ? currentPath.remove(0) : null;
+      currentMove = currentPath != null && currentPath.size() > 0 ? currentPath.remove(0) : null;
       consumedMove = false;
     }
 
     if (currentMove == null) {
 
-      System.out.println("No movement available!");
+      // Null currentMove means that the action path is consumed, signifying that the AI can act
+      // based on the specified action.
+      LOGGER.info("No movement available!");
+//      System.out.println("No movement available!");
       this.player.setVelX(0);
       this.player.setVelY(0);
       consumedMove = true;
+
+      if (currentAction != null) {
+        currentAction.act();
+
+        if (currentAction.isComplete()) {
+          // If the action is complete, the AI may proceed with the chained action.
+          currentAction = currentAction.getChainedAction();
+
+          if (currentAction != null) {
+            currentPath = currentAction.getActionPath();
+            System.out.println("Getting chained action: " + currentPath.size());
+          }
+        }
+      }
 
       return;
     }
@@ -239,7 +140,17 @@ public class Ai {
     float playerX = player.getX();
     float playerY = player.getY();
 
-    System.out.println("[" + targetX + ", " + targetY + "] --> [" + playerX + ", " + playerY + "]");
+//    System.out.println("[" + targetX + ", " + targetY + "] --> [" + playerX + ", " + playerY +
+//        "]");
+
+//    Node lastNode = currentPath.size() > 0 ? currentPath.get(currentPath.size() - 1) : currentMove;
+//    System.out.println("Goal: " + lastNode + ", current: " + currentMove + " --> " + NodeUtils.createNode(player));
+
+//    Node finalNode = currentPath.get(currentPath.size() - 1);
+//
+//    System.out.println("[" + playerX + ", " + playerY + "] --> [" + finalNode.getX() + ", " +
+//    finalNode.getY() + "]");
+
 
     float speed = player.getSpeed();
     int speedLevel = (int) player.getSpeedLevel() / 2;

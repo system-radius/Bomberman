@@ -15,6 +15,8 @@ import com.system.radius.objects.board.WorldConstants;
 import com.system.radius.objects.players.Player;
 import com.system.radius.utils.DebugUtils;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public abstract class Bomb extends Block {
@@ -30,6 +32,8 @@ public abstract class Bomb extends Block {
   private static final long EXPLOSION_TIMER = 1000;
 
   private List<Player> players;
+
+  private List<Boolean> activeCollisions;
 
   private Player owner;
 
@@ -112,6 +116,11 @@ public abstract class Bomb extends Block {
     loadAssets();
 
     players = BoardState.getInstance().getPlayers();
+
+    Boolean[] tempArray = new Boolean[players.size()];
+    Arrays.fill(tempArray, false);
+
+    activeCollisions = Arrays.asList(tempArray);
     updateBounds();
   }
 
@@ -139,15 +148,15 @@ public abstract class Bomb extends Block {
     return new Animation<>(frameDuration, container);
   }
 
-  public void updateBoardCost(int[][] board, int speedLevel) {
+  /**
+   * Update the board cost with a specified cost.
+   *
+   * @param board - The board representation in integer.
+   * @param cost - The cost to be included for this bomb.
+   */
+  public void updateBoardCostSetCost(int[][] board, int cost) {
 
     updateBounds();
-    int cost = WorldConstants.FIRE_PATH_COST - (speedLevel * 10);
-
-    if (this.exploding) {
-      cost = 500;
-    }
-
     BoardState boardState = BoardState.getInstance();
 
     int exactX = boardState.getExactX(this);
@@ -156,7 +165,7 @@ public abstract class Bomb extends Block {
     for (int i = 0; i <= totalRange; i++) {
 
       updateCellCost(board, exactX, exactY + i, cost, (int) rangeNorth, i);
-      updateCellCost(board, exactX, exactY- i, cost, (int) rangeSouth, i);
+      updateCellCost(board, exactX, exactY - i, cost, (int) rangeSouth, i);
       updateCellCost(board, exactX + i, exactY, cost, (int) rangeEast, i);
       updateCellCost(board, exactX - i, exactY, cost, (int) rangeWest, i);
 
@@ -164,9 +173,28 @@ public abstract class Bomb extends Block {
 
   }
 
+  /**
+   * Update the board's movement costs based on the specified speed level.
+   *
+   * @param board - The board representation in integer.
+   * @param speedLevel - The speed level to be the basis of the cost.
+   */
+  public void updateBoardCost(int[][] board, int speedLevel) {
+
+    int cost = WorldConstants.FIRE_PATH_COST - (speedLevel * 10);
+
+    if (this.exploding) {
+      cost = -1;
+    }
+
+    updateBoardCostSetCost(board, cost);
+
+  }
+
   private void updateCellCost(int[][] board, int x, int y, int cost, int range, int checker) {
 
-    if (checker < range) {
+    // Do not update the board cost if the current cell is blocked.
+    if (checker < range && board[y][x] >= 0) {
       board[y][x] = cost;
     }
 
@@ -390,6 +418,20 @@ public abstract class Bomb extends Block {
   }
 
   @Override
+  public boolean isActiveCollision(Player player) {
+
+    int index = -1;
+    for (int i = 0; i < players.size(); i++) {
+      if (players.get(i).equals(player)) {
+        index = i;
+        break;
+      }
+    }
+
+    return index != -1 && activeCollisions.get(index);
+  }
+
+  @Override
   public void update(float delta) {
 
     long lapsedTime = System.currentTimeMillis();
@@ -408,20 +450,19 @@ public abstract class Bomb extends Block {
       }
     }
 
-    for (Player player : players) {
+    for (int i = 0; i < players.size(); i++) {
 
-      if (exploding) {
-        attemptPlayerBurn(player);
-
-        // No need to check for the collision activity.
+      // If the collision is already active, do not reset.
+      if (activeCollisions.get(i)) {
         continue;
       }
 
-      activeCollision = !Intersector.overlaps(player.getBounds(), bounds);
+      Player player = players.get(i);
+      boolean collision = !Intersector.overlaps(player.getBounds(), bounds);
 
-      if (!activeCollision) {
-        break;
-      }
+      // Reset the collision status for the player.
+      activeCollisions.set(i, collision);
+
     }
 
   }
@@ -434,7 +475,7 @@ public abstract class Bomb extends Block {
       batch.draw(breathingAnimation.getKeyFrame(animationElapsedTime), getX(), getY(), getWidth(),
           getHeight());
     } else {
-//      drawFire(batch);
+      drawFire(batch);
       batch.draw(headExAnimation.getKeyFrame(animationElapsedTime), getX(), getY(), getWidth(),
           getHeight());
     }

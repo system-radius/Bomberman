@@ -1,6 +1,5 @@
 package com.system.radius.objects.board;
 
-import com.badlogic.gdx.physics.box2d.World;
 import com.system.radius.objects.AbstractBomberObject;
 import com.system.radius.objects.blocks.Block;
 import com.system.radius.objects.players.Player;
@@ -118,8 +117,6 @@ public class BoardState {
   }
 
   public void burnObject(int x, int y) {
-
-    System.out.println("burning: " + x + ", " + y);
 
     AbstractBomberObject object = board[y][x];
 
