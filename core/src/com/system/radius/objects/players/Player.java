@@ -49,6 +49,12 @@ public abstract class Player extends AbstractBomberObject implements Disposable 
   protected Rectangle collisionRect;
 
   /**
+   * A rectangle representation of the area that will allow the player to burn if in contact with
+   * the fire collision from a bomb.
+   */
+  protected Rectangle collisionBurn;
+
+  /**
    * The player's current speed level. To avoid having the player jump over walls dues to too
    * much computation using the velocity values, the maximum speed level is up to 5.
    */
@@ -108,6 +114,8 @@ public abstract class Player extends AbstractBomberObject implements Disposable 
 
   private float thinHeight;
 
+  private float thinScale;
+
   Player(String spriteSheetPath, float x, float y, float scale) {
     super('P', x, y);
 
@@ -120,6 +128,9 @@ public abstract class Player extends AbstractBomberObject implements Disposable 
 
     fixBounds();
     loadAsset(spriteSheetPath);
+
+    thinScale = scale / 4f;
+    collisionBurn = new Rectangle(x + thinScale, y + thinScale, thinScale * 2, thinScale * 2);
 
   }
 
@@ -228,6 +239,8 @@ public abstract class Player extends AbstractBomberObject implements Disposable 
     eastRect.setPosition(x + scale - thinWidth, y + thinHeight);
     westRect.setPosition(x, y + thinHeight);
 
+    collisionBurn.setPosition(x + thinScale, y + thinScale);
+
   }
 
   @Override
@@ -319,7 +332,7 @@ public abstract class Player extends AbstractBomberObject implements Disposable 
 
     for (Block block : blocks) {
 
-      if (!block.isActiveCollision()) {
+      if (!block.isActiveCollision(this)) {
         continue;
       }
 
@@ -359,6 +372,10 @@ public abstract class Player extends AbstractBomberObject implements Disposable 
 
   public Rectangle getEastRect() {
     return eastRect;
+  }
+
+  public Rectangle getBurnCollision() {
+    return collisionBurn;
   }
 
   @Override
@@ -410,6 +427,9 @@ public abstract class Player extends AbstractBomberObject implements Disposable 
     DebugUtils.drawRect(shapeRenderer, getSouthRect());
     DebugUtils.drawRect(shapeRenderer, getEastRect());
     DebugUtils.drawRect(shapeRenderer, getWestRect());
+
+    shapeRenderer.setColor(Color.RED);
+    DebugUtils.drawRect(shapeRenderer, collisionBurn);
 
   }
 
