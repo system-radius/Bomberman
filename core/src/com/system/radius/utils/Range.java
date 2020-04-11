@@ -4,9 +4,14 @@ import com.system.radius.ai.Node;
 import com.system.radius.objects.board.BoardState;
 import com.system.radius.objects.board.WorldConstants;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class Range {
 
   private BoardState boardState = BoardState.getInstance();
+
+  private Map<Character, Boolean> burnTargets = new HashMap<>();
 
   private int x;
 
@@ -70,14 +75,19 @@ public class Range {
   private int checkObstacle(BoardState boardState, int x, int y, char dir, int counter) {
 
     if (counter > range) {
+      burnTargets.put(dir, false);
       return 1;
     }
 
-    if (boardState.getChar(x, y) == WorldConstants.BOARD_PERMA_BLOCK) {
+    if (boardState.getChar(x, y) == WorldConstants.BOARD_PERMA_BLOCK ||
+        boardState.getChar(x, y) == WorldConstants.BOARD_HARD_BLOCK ||
+        boardState.getChar(x, y) == WorldConstants.BOARD_TO_DESTROY) {
+      burnTargets.put(dir, false);
       return 2;
     }
 
-    if (boardState.getChar(x, y) == WorldConstants.BOARD_HARD_BLOCK || boardState.getChar(x, y) == WorldConstants.BOARD_SOFT_BLOCK) {
+    if (boardState.getChar(x, y) == WorldConstants.BOARD_SOFT_BLOCK) {
+      burnTargets.put(dir, true);
       return 2;
     }
 
@@ -93,6 +103,10 @@ public class Range {
     }
 
     return 1;
+  }
+
+  public Map<Character, Boolean> getBurnTargets() {
+    return burnTargets;
   }
 
   public int getNorth() {
