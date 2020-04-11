@@ -9,6 +9,7 @@ import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Circle;
 import com.badlogic.gdx.math.Intersector;
 import com.badlogic.gdx.math.Rectangle;
+import com.badlogic.gdx.physics.box2d.World;
 import com.system.radius.objects.blocks.Block;
 import com.system.radius.objects.board.BoardState;
 import com.system.radius.objects.board.WorldConstants;
@@ -152,7 +153,7 @@ public abstract class Bomb extends Block {
    * Update the board cost with a specified cost.
    *
    * @param board - The board representation in integer.
-   * @param cost - The cost to be included for this bomb.
+   * @param cost  - The cost to be included for this bomb.
    */
   public void updateBoardCostSetCost(int[][] board, int cost) {
 
@@ -176,7 +177,7 @@ public abstract class Bomb extends Block {
   /**
    * Update the board's movement costs based on the specified speed level.
    *
-   * @param board - The board representation in integer.
+   * @param board      - The board representation in integer.
    * @param speedLevel - The speed level to be the basis of the cost.
    */
   public void updateBoardCost(int[][] board, int speedLevel) {
@@ -323,11 +324,14 @@ public abstract class Bomb extends Block {
       return 1;
     }
 
-    if (boardState.getChar(x, y) == WorldConstants.BOARD_PERMA_BLOCK) {
+    if (boardState.getChar(x, y) == WorldConstants.BOARD_PERMA_BLOCK ||
+        boardState.getChar(x, y) == WorldConstants.BOARD_HARD_BLOCK ||
+        boardState.getChar(x, y) == WorldConstants.BOARD_TO_DESTROY) {
       return 2;
     }
 
-    if (boardState.getChar(x, y) == WorldConstants.BOARD_HARD_BLOCK || boardState.getChar(x, y) == WorldConstants.BOARD_SOFT_BLOCK) {
+    if (boardState.getChar(x, y) == WorldConstants.BOARD_SOFT_BLOCK) {
+      boardState.setChar(x, y, WorldConstants.BOARD_TO_DESTROY);
       return 2;
     }
 
