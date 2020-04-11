@@ -25,4 +25,6 @@ public class WorldConstants {
 
   public static final char BOARD_SOFT_BLOCK = '*';
 
+  public static final char BOARD_TO_DESTROY = '!';
+
 }
