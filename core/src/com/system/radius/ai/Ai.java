@@ -1,14 +1,17 @@
 package com.system.radius.ai;
 
 import com.badlogic.gdx.graphics.g2d.Batch;
-import com.badlogic.gdx.utils.Logger;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+import com.badlogic.gdx.math.Rectangle;
 import com.system.radius.ai.action.Action;
+import com.system.radius.ai.action.BombBlocksAction;
 import com.system.radius.ai.action.BombPlayerAction;
 import com.system.radius.ai.action.DefenseAction;
 import com.system.radius.objects.board.BoardState;
 import com.system.radius.objects.board.WorldConstants;
 import com.system.radius.objects.players.Player;
-import com.system.radius.utils.NodeUtils;
+import com.system.radius.utils.BombermanLogger;
+import com.system.radius.utils.DebugUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -18,15 +21,15 @@ import java.util.List;
  */
 public class Ai {
 
-  private static final Logger LOGGER = new Logger(Ai.class.getSimpleName());
+  private static final BombermanLogger LOGGER = new BombermanLogger(Ai.class.getSimpleName());
 
-  private static final long PATH_CHANGE_INTERVAL = 250;
+  private static final long PATH_CHANGE_INTERVAL = 100;
+
+  private BoardState boardState = BoardState.getInstance();
 
   private List<Action> actionList;
 
   private List<Node> currentPath = new ArrayList<>();
-
-  private BoardState boardState;
 
   private Player player;
 
@@ -38,9 +41,10 @@ public class Ai {
 
   private Action currentAction;
 
+  private int[][] board;
+
   public Ai(Player player) {
 
-    this.boardState = BoardState.getInstance();
     this.player = player;
 
     initializeActions();
@@ -52,8 +56,15 @@ public class Ai {
 
     actionList = new ArrayList<>();
 
-    actionList.add(new BombPlayerAction(player));
-    actionList.add(new DefenseAction(player));
+    Action defenseAction = new DefenseAction(this);
+    Action bombPlayerAction = new BombPlayerAction(this, defenseAction);
+    Action bombBlocksAction = new BombBlocksAction(this, defenseAction);
+
+    defenseAction.addChainedAction(bombPlayerAction, bombBlocksAction);
+
+    actionList.add(bombPlayerAction);
+    actionList.add(bombBlocksAction);
+    actionList.add(defenseAction);
   }
 
   private void chooseAction(boolean chained) {
@@ -66,7 +77,11 @@ public class Ai {
       boolean doable = chained ? action.isDoable(currentAction.getHypotheticalBoard()) :
           action.isDoable();
 
+      LOGGER.info("Checking action: " + action.getClass().getSimpleName()
+          + ", doable: " + doable);
+
       if (doable) {
+        LOGGER.info("Action selected!");
         todo = action;
         break;
       }
@@ -90,12 +105,14 @@ public class Ai {
       currentPath = currentAction.getActionPath();
 
       if (currentAction instanceof DefenseAction && currentAction.isComplete()) {
+        LOGGER.info("Choosing action as chained action.");
         chooseAction(true);
       }
 
       return;
     }
 
+    LOGGER.info("Choosing action as is.");
     chooseAction(false);
 
   }
@@ -111,8 +128,6 @@ public class Ai {
 
       // Null currentMove means that the action path is consumed, signifying that the AI can act
       // based on the specified action.
-      LOGGER.info("No movement available!");
-//      System.out.println("No movement available!");
       this.player.setVelX(0);
       this.player.setVelY(0);
       consumedMove = true;
@@ -122,11 +137,13 @@ public class Ai {
 
         if (currentAction.isComplete()) {
           // If the action is complete, the AI may proceed with the chained action.
+          Action lastAction = currentAction;
           currentAction = currentAction.getChainedAction();
 
+          lastAction.resetComplete();
           if (currentAction != null) {
             currentPath = currentAction.getActionPath();
-            System.out.println("Getting chained action: " + currentPath.size());
+//            LOGGER.info("Getting chained action: " + currentPath.size());
           }
         }
       }
@@ -139,17 +156,6 @@ public class Ai {
 
     float playerX = player.getX();
     float playerY = player.getY();
-
-//    System.out.println("[" + targetX + ", " + targetY + "] --> [" + playerX + ", " + playerY +
-//        "]");
-
-//    Node lastNode = currentPath.size() > 0 ? currentPath.get(currentPath.size() - 1) : currentMove;
-//    System.out.println("Goal: " + lastNode + ", current: " + currentMove + " --> " + NodeUtils.createNode(player));
-
-//    Node finalNode = currentPath.get(currentPath.size() - 1);
-//
-//    System.out.println("[" + playerX + ", " + playerY + "] --> [" + finalNode.getX() + ", " +
-//    finalNode.getY() + "]");
 
 
     float speed = player.getSpeed();
@@ -173,10 +179,22 @@ public class Ai {
     return player;
   }
 
+  public int[][] getBoard() {
+    return board;
+  }
+
   public void update(float delta) {
 
     if (System.currentTimeMillis() - lastPathChange >= PATH_CHANGE_INTERVAL) {
+      String actionClass = currentAction != null ? currentAction.getClass().getSimpleName() : null;
+      LOGGER.info(" = = = = = [" + actionClass + "]");
       lastPathChange = System.currentTimeMillis();
+
+      // Create a representation of the board for the actions to be evaluated.
+      // The board should be updated every time something has happened.
+      board = boardState.constructBoardRep(player);
+
+//      AStarUtils.printMaze(board);
       decide();
     }
 
@@ -186,6 +204,21 @@ public class Ai {
 
   public void draw(Batch batch, float delta) {
     player.draw(batch, delta);
+  }
+
+  public void drawDebug(ShapeRenderer shapeRenderer, float delta) {
+
+    if (currentPath == null) {
+      return;
+    }
+
+    float scale = WorldConstants.WORLD_SCALE;
+
+    for (Node node : currentPath) {
+      DebugUtils.drawRect(shapeRenderer, new Rectangle(node.getX() * scale, node.getY() * scale,
+          scale, scale));
+    }
+
   }
 
 }
