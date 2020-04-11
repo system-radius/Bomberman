@@ -1,25 +1,33 @@
 package com.system.radius.ai.action;
 
+import com.system.radius.ai.Ai;
 import com.system.radius.ai.Node;
 import com.system.radius.objects.board.WorldConstants;
-import com.system.radius.objects.bombs.Bomb;
 import com.system.radius.objects.players.Player;
-import com.system.radius.utils.AStarUtils;
+import com.system.radius.utils.BombermanLogger;
+import com.system.radius.utils.NodeUtils;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class DefenseAction extends Action {
+public class DefenseAction extends MultiTargetAction {
+
+  private static final BombermanLogger LOGGER =
+      new BombermanLogger(DefenseAction.class.getSimpleName());
 
   private List<Node> possibleTargets = new ArrayList<>();
 
   private boolean safe;
 
-  public DefenseAction(Player player) {
-    super(player);
+  public DefenseAction(Ai ai, Action... chained) {
+    super(ai, chained);
   }
 
-  private void chooseTarget(Node source) {
+  @Override
+  protected void chooseTarget(Node source) {
+
+    int spacesNear = 0;
+    int range = player.getFirePower();
 
     safe = false;
     target = null;
@@ -33,17 +41,19 @@ public class DefenseAction extends Action {
         break;
       }
 
-      List<Node> path = AStarUtils.findShortestPath(hypotheticalBoard, source, node);
-      // Get the last node from the path.
+      int spacesCounter = pathFinder.searchSpaces(hypotheticalBoard, node, range).size();
+      List<Node> path = pathFinder.findShortestPath(hypotheticalBoard, source, node);
 
-      if (path == null) {
+      if (path == null || spacesCounter < spacesNear) {
         continue;
       }
 
+      // Get the last node from the path.
       node = path.get(path.size() - 1);
       if (target == null || node.getCost() < target.getCost()) {
         target = node;
         actionPath = path;
+        spacesNear = spacesCounter;
       }
     }
 
@@ -51,74 +61,84 @@ public class DefenseAction extends Action {
 
   private void blockFirePaths() {
 
+    int ms = (int) player.getSpeedLevel();
+    int h = (int) WorldConstants.WORLD_HEIGHT;
+    int w = (int) WorldConstants.WORLD_WIDTH;
+    for (int i = 0; i < h; i++) {
+      for (int j = 0; j < w; j++) {
 
-  }
+        int value = hypotheticalBoard[i][j];
+        if (value <= ms) {
+          continue;
+        }
 
-  @Override
-  public void updateBombCost(int[][] board, Bomb bomb) {
-    if (!safe) {
-      super.updateBombCost(board, bomb);
-      return;
+        hypotheticalBoard[i][j] = -1;
+      }
     }
 
-    // If the player is already safe, all fire paths will become blocked.
-    bomb.updateBoardCostSetCost(board, -1);
   }
 
   @Override
   public boolean isDoable(int[][] parentBoard, Node source) {
 
-    hypotheticalBoard = constructBoardRep();
-    adaptBoard(parentBoard);
+    boolean chained = parentBoard != null;
+    hypotheticalBoard = boardState.copyBoard(ai.getBoard());
+    if (!chained) {
+      LOGGER.info("Checking action doability from AI.");
+    } else {
+      LOGGER.info("Checking action doability from parent.");
+//      AStarUtils.printMaze(parentBoard, hypotheticalBoard);
+    }
+
+    boardState.adaptBoard(hypotheticalBoard, parentBoard);
 
     isTargetAcquired();
 
     chooseTarget(source);
 
-    System.out.println("Current path: " + actionPath.size());
-    return true;
+    // This action can sometimes be not doable. lol
+    // Especially if checking from the side of bombing blocks.
+    boolean doable = actionPath != null && possibleTargets.size() != 0;
+
+    if (doable) {
+      if (chained) {
+        Node lastNode = actionPath.size() > 0 ? actionPath.get(actionPath.size() - 1) :
+            NodeUtils.createNode(player);
+        int x = lastNode.getX();
+        int y = lastNode.getY();
+        parentBoard[y][x] = 0;
+      }
+
+      LOGGER.info("Action is doable! Current path size: " + actionPath.size());
+    } else {
+      LOGGER.info("Defense action cannot be done!");
+    }
+
+    return doable;
   }
 
   @Override
   public boolean isTargetAcquired() {
 
     possibleTargets.clear();
+    LOGGER.info("Cleared safety spaces: " + possibleTargets.size());
     int detectionRange = (int) Math.max(WorldConstants.WORLD_WIDTH, WorldConstants.WORLD_HEIGHT);
 
-    int playerX = boardState.getExactX(player);
-    int playerY = boardState.getExactY(player);
+    List<Node> emptySpaces = pathFinder.searchSpaces(hypotheticalBoard,
+        NodeUtils.createNode(player), detectionRange);
 
     int movementCost = (int) Player.SPEED_COUNTER - (int) player.getSpeedLevel();
+    LOGGER.info("Empty spaces: " + emptySpaces.size() + ", getting targets with: " + movementCost);
 
-    possibleTargets = new ArrayList<>();
+    for (Node space : emptySpaces) {
+      int x = space.getX();
+      int y = space.getY();
 
-    // k represents the range from player.
-    // This will not stop from expanding until at least one area surrounding the player is
-    // available.
-    for (int k = 0; k < detectionRange && possibleTargets.size() == 0; k += 2) {
-
-      for (int i = -k; i <= k; i++) {
-        int y = playerY + i;
-
-        if (y < 0 || y >= WorldConstants.WORLD_HEIGHT) {
-          continue;
-        }
-
-        for (int j = -k; j <= k; j++) {
-
-          int x = playerX + j;
-          if (x < 0 || x >= WorldConstants.WORLD_WIDTH ||
-              (Math.abs(i) != k && Math.abs(j) != j) || hypotheticalBoard[y][x] > movementCost ||
-              hypotheticalBoard[y][x] < 0) {
-            // Ignore checking costs that are out-of-bounds.
-            // Also ignore spaces where the cost exceed the normal cost (along the fire path).
-            continue;
-          }
-
-          possibleTargets.add(new Node(null, x, y, 0, 0));
-
-        }
-
+      LOGGER.info("Comparing: " + hypotheticalBoard[y][x] + " vs. " + movementCost);
+      if (hypotheticalBoard[y][x] == movementCost || hypotheticalBoard[y][x] == 0) {
+        LOGGER.info("Adding safe space!");
+        hypotheticalBoard[y][x] = 0;
+        possibleTargets.add(space);
       }
 
     }
@@ -132,10 +152,26 @@ public class DefenseAction extends Action {
     // Well, checking for another action possibility could be done here.
     // Especially since only in this action are the boards tagged with blocked fire paths.
 
-    // Fore the AI to check if another action is doable?
+    LOGGER.info("Attempting to act. Is AI safe: " + safe);
+    // Force the AI to check if another action is doable?
+    if (!safe) {
+      // Cannot act if the AI is not safe.
+      return;
+    }
 
-    if (safe) {
-      complete = true;
+    blockFirePaths();
+    Node sourceNode = NodeUtils.createNode(player);
+    for (Action action : chainedActions) {
+
+      LOGGER.info("Checking for doability of action: " + action.getClass().getSimpleName());
+      if (action.isDoable(hypotheticalBoard, sourceNode)) {
+        // Another action can be done, this defense action is complete.
+//        LOGGER.info("Action is doable with the following maze: ");
+//        AStarUtils.printMaze(hypotheticalBoard);
+        activeChainedAction = action;
+        complete = true;
+        break;
+      }
     }
   }
 }
