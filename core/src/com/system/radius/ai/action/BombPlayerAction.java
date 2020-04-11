@@ -1,22 +1,20 @@
 package com.system.radius.ai.action;
 
-import com.badlogic.gdx.utils.Logger;
+import com.system.radius.ai.Ai;
 import com.system.radius.ai.Node;
-import com.system.radius.objects.board.WorldConstants;
 import com.system.radius.objects.players.Player;
-import com.system.radius.utils.AStarUtils;
 import com.system.radius.utils.BombUtils;
+import com.system.radius.utils.BombermanLogger;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class BombPlayerAction extends Action {
 
-  private static final Logger LOGGER = new Logger(BombPlayerAction.class.getSimpleName());
+  private static final BombermanLogger LOGGER = new BombermanLogger(BombPlayerAction.class.getSimpleName());
 
-  public BombPlayerAction(Player player) {
-    super(player);
-    chainedAction = new DefenseAction(player);
+  public BombPlayerAction(Ai ai, Action... chained) {
+    super(ai, chained);
   }
 
   private void processPath() {
@@ -105,10 +103,10 @@ public class BombPlayerAction extends Action {
   public boolean isDoable(int[][] parentBoard, Node source) {
 
     // Create the board based on the current events.
-    hypotheticalBoard = constructBoardRep();
+    hypotheticalBoard = boardState.copyBoard(ai.getBoard());
 
     // Adapt the values from the parent board for the projection of future behavior.
-    adaptBoard(parentBoard);
+    boardState.adaptBoard(hypotheticalBoard, parentBoard);
 
     if (!isTargetAcquired()) {
       return false;
@@ -120,7 +118,7 @@ public class BombPlayerAction extends Action {
       source = new Node(null, playerX, playerY, 0, 0);
     }
 
-    actionPath = AStarUtils.findShortestPath(hypotheticalBoard, source, target);
+    actionPath = pathFinder.findShortestPath(hypotheticalBoard, source, target);
 
     // This means that there is a definite path from the AI to the enemy.
     boolean canAct = actionPath != null && actionPath.size() != 0;
@@ -137,7 +135,8 @@ public class BombPlayerAction extends Action {
     if (actionPath.size() > 0) {
       Node lastNode = actionPath.get(actionPath.size() - 1);
       BombUtils.updateBoardCost(hypotheticalBoard, lastNode, player);
-      chainedAction.isDoable(hypotheticalBoard, lastNode);
+      // There should be at least one chained action.
+      activeChainedAction.isDoable(hypotheticalBoard, lastNode);
     }
 
     return canAct;
@@ -197,11 +196,15 @@ public class BombPlayerAction extends Action {
     }
 
     LOGGER.info("Placing bomb!");
-    System.out.println("Placing bomb!");
     player.plantBomb();
 
     complete = true;
 
+  }
+
+  @Override
+  public void onComplete() {
+    // Do nothing.
   }
 
 }
