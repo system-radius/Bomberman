@@ -28,6 +28,9 @@ import java.util.List;
 
 public class GameScreen extends AbstractScreen {
 
+  private static final BombermanLogger LOGGER =
+      new BombermanLogger(GameScreen.class.getSimpleName());
+
   private ShapeRenderer shapeRenderer;
 
   private OrthographicCamera camera;
@@ -40,7 +43,11 @@ public class GameScreen extends AbstractScreen {
 
   private List<Ai> ais;
 
-  private Ai ai;
+  private int playerCount = 4;
+
+  private boolean allowPlayer = false;
+
+  private boolean randomize = true;
 
   public GameScreen(Game game) {
     super(game, WorldConstants.WORLD_WIDTH, WorldConstants.WORLD_HEIGHT,
@@ -49,22 +56,12 @@ public class GameScreen extends AbstractScreen {
 
   public void reset() {
 
+    LOGGER.info(" = = = = = = = = = = = = = = = = = = = = = = = = ");
     Gdx.app.setApplicationLogger(new BombermanLogger());
     Gdx.app.setLogLevel(Logger.INFO);
 
     boardState = BoardState.getInstance();
     boardState.reset();
-    boardState.addPlayer(new Player1(1f * scale, 1f * scale, scale));
-    ais = new ArrayList<>();
-//    ais.add(new Ai(new Player1(1f * scale, 1f * scale, scale)));
-    ais.add(new Ai(new Player1((worldWidth - 2) * scale, (worldHeight - 2) * scale, scale)));
-//    ai = new Ai(new Player1((worldWidth - 2) * scale, (worldHeight - 2) * scale, scale));
-
-    players = new ArrayList<>(boardState.getPlayers());
-
-    for (Ai ai : ais) {
-      boardState.addPlayer(ai.getPlayer());
-    }
 
     float spacing = 2f;
 
@@ -79,7 +76,44 @@ public class GameScreen extends AbstractScreen {
       }
     }
 
-//    randomizeField();
+    if (randomize) {
+      randomizeField();
+    }
+    // Board construction should be done first before creating the players.
+    createPlayers();
+  }
+
+  private void createPlayers() {
+    ais = new ArrayList<>();
+
+    switch (playerCount) {
+      case 4:
+        //Bottom-right
+        ais.add(new Ai(new Player1((worldWidth - 2) * scale, 1f * scale, scale)));
+      case 3:
+        // Top-left
+        ais.add(new Ai(new Player1(1f * scale, (worldHeight - 2) * scale, scale)));
+      case 2:
+        // Top-right
+        ais.add(new Ai(new Player1((worldWidth - 2) * scale, (worldHeight - 2) * scale, scale)));
+      case 1:
+      default:
+        if (allowPlayer) {
+          // Create a player instance if allowed.
+          boardState.addPlayer(new Player1(1f * scale, 1f * scale, scale));
+          break;
+        }
+
+        // Otherwise, create an AI.
+        // Bottom-left
+        ais.add(new Ai(new Player1(1f * scale, 1f * scale, scale)));
+    }
+
+    players = new ArrayList<>(boardState.getPlayers());
+
+    for (Ai ai : ais) {
+      boardState.addPlayer(ai.getPlayer());
+    }
   }
 
   private void randomizeField() {
@@ -181,6 +215,11 @@ public class GameScreen extends AbstractScreen {
     for (Player player : players) {
       player.drawDebug(shapeRenderer, delta);
     }
+
+    for (Ai ai : ais) {
+      ai.drawDebug(shapeRenderer, delta);
+    }
+
     shapeRenderer.end();
   }
 
