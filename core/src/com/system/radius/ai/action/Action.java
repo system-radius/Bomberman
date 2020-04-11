@@ -1,12 +1,16 @@
 package com.system.radius.ai.action;
 
+import com.system.radius.ai.Ai;
 import com.system.radius.ai.Node;
 import com.system.radius.objects.board.BoardState;
 import com.system.radius.objects.board.WorldConstants;
 import com.system.radius.objects.bombs.Bomb;
 import com.system.radius.objects.players.Player;
+import com.system.radius.utils.AStarUtils;
 import com.system.radius.utils.NodeUtils;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public abstract class Action {
@@ -22,6 +26,11 @@ public abstract class Action {
   protected BoardState boardState = BoardState.getInstance();
 
   /**
+   * The artificial intelligence using this action.
+   */
+  protected Ai ai;
+
+  /**
    * The player instance which will be the point of reference for acting.
    */
   protected Player player;
@@ -34,8 +43,21 @@ public abstract class Action {
   /**
    * Another action that is to be performed after this action is completed.
    */
-  protected Action chainedAction;
+  protected Action activeChainedAction;
 
+  /**
+   * A collection of the other actions that can be performed after this action is completed.
+   */
+  protected List<Action> chainedActions = new ArrayList<>();
+
+  /**
+   * A path finder tool.
+   */
+  protected AStarUtils pathFinder;
+
+  /**
+   * Indicates that this action is completed, and can move on to another action.
+   */
   protected boolean complete;
 
   /**
@@ -43,8 +65,24 @@ public abstract class Action {
    */
   protected int[][] hypotheticalBoard;
 
-  public Action(Player player) {
-    this.player = player;
+  public Action(Ai ai, Action... chained) {
+    this.ai = ai;
+    this.player = ai.getPlayer();
+
+    pathFinder = new AStarUtils();
+    addChainedAction(chained);
+  }
+
+  public void addChainedAction(Action... actions) {
+    if (actions == null || actions.length == 0) {
+      return;
+    }
+
+    chainedActions.addAll(Arrays.asList(actions));
+    if (activeChainedAction == null) {
+      // Get the first action as the active chained action.
+      activeChainedAction = chainedActions.get(0);
+    }
   }
 
   /**
@@ -91,149 +129,20 @@ public abstract class Action {
   public abstract void act();
 
   /**
-   * Constructs a representation of the game / board state in integer. This helps in tracking
-   * which way to go, or which way is safer based on the updated costs.
-   *
-   * @return The integer representation of the board.
+   * What will the action do upon completion?
    */
-  protected final int[][] constructBoardRep() {
-
-    int worldHeight = (int) WorldConstants.WORLD_HEIGHT;
-    int worldWidth = (int) WorldConstants.WORLD_WIDTH;
-
-    char[][] charBoard = boardState.getBoardRep();
-
-    return updateBoardCost(createBoardRep(charBoard, worldWidth, worldHeight), charBoard,
-        worldWidth, worldHeight);
-  }
-
-  /**
-   * Creates the first board representation with default costs.
-   *
-   * @param charBoard   - The character-based board which will be the basis for the non-passable
-   *                    terrain.
-   * @param worldWidth  - The current world's width.
-   * @param worldHeight - The current world's height.
-   * @return The default integer representation.
-   */
-  protected int[][] createBoardRep(char[][] charBoard, int worldWidth, int worldHeight) {
-
-
-    int[][] intBoard = new int[worldHeight][worldWidth];
-
-    int speedLevel = (int) player.getSpeedLevel();
-    int cost = (int) Player.SPEED_COUNTER - speedLevel;
-
-    // Retrieve the base board representation.
-    for (int i = 0; i < worldHeight; i++) {
-      for (int j = 0; j < worldWidth; j++) {
-
-        if (charBoard[i][j] != WorldConstants.BOARD_EMPTY) {
-          // Mark everything else as unpassable.
-          intBoard[i][j] = -1;
-        } else {
-          // Empty spaces cost movement depending on the character's speed level.
-          intBoard[i][j] = cost;
-        }
-
-      }
-    }
-
-    return intBoard;
-  }
-
-  /**
-   * Updates the board representation with the proper costs based on the location of the bombs,
-   * and other things that should be taken into account.
-   * <p>
-   * This method may be overridden to provide more cost interpretations.
-   *
-   * @param intBoard    - The default integer board representation.
-   * @param charBoard   - The character-based board representation.
-   * @param worldWidth  - The current world's width.
-   * @param worldHeight - The current world's height.
-   * @return The new board with updated costs.
-   */
-  protected int[][] updateBoardCost(int[][] intBoard, char[][] charBoard, int worldWidth,
-                                    int worldHeight) {
-
-    int speedLevel = (int) player.getSpeedLevel();
-    int multiSpeedLevel = speedLevel * 10;
-    int playerX = boardState.getExactX(player);
-    int playerY = boardState.getExactY(player);
-
-    // Apply the bomb's fire ranges' cost.
-    for (int i = -multiSpeedLevel; i <= multiSpeedLevel; i++) {
-      int y = playerY + i;
-
-      // Out-of-bounds checking
-      if (y < 0 || y >= worldHeight) {
-        continue;
-      }
-
-      for (int j = -multiSpeedLevel; j <= multiSpeedLevel; j++) {
-
-        int x = playerX + j;
-
-        // Out-of-bounds + object of interest checking.
-        if (x < 0 || x >= worldWidth || charBoard[y][x] != WorldConstants.BOARD_BOMB) {
-          continue;
-        }
-
-        // The object marked by (x, y) is sure to be a bomb instance.
-        Bomb bomb = (Bomb) boardState.getObject(x, y);
-        updateBombCost(intBoard, bomb);
-
-      }
-    }
-
-    return intBoard;
-  }
-
-  protected void updateBombCost(int[][] board, Bomb bomb) {
-
-    int speedLevel = (int) player.getSpeedLevel();
-    bomb.updateBoardCost(board, speedLevel);
-
-  }
-
-  /**
-   * This method adapts the values from the parent board to the hypothetical board for the
-   * prediction of new path to be traversed after the parent action is done.
-   * All boards to be adapted is supposed to be rectangular in shape.
-   *
-   * @param parentBoard - The parent board whose values will be copied.
-   */
-  void adaptBoard(int[][] parentBoard) {
-
-    if (parentBoard == null) {
-      return;
-    }
-
-    int boardHeight = parentBoard.length;
-    int boardWidth = parentBoard[0].length;
-
-    for (int i = 0; i < boardHeight; i++) {
-      for (int j = 0; j < boardWidth; j++) {
-
-        int parentValue = parentBoard[i][j];
-        if (parentValue == hypotheticalBoard[i][j]) {
-          // If there is no difference to be adapted, skip.
-          continue;
-        }
-
-        hypotheticalBoard[i][j] = parentValue;
-
-      }
-    }
-  }
+  public abstract void onComplete();
 
   public List<Node> getActionPath() {
     return actionPath;
   }
 
+  public List<Action> getChainedActions() {
+    return chainedActions;
+  }
+
   public Action getChainedAction() {
-    return chainedAction;
+    return activeChainedAction;
   }
 
   public int[][] getHypotheticalBoard() {
@@ -242,6 +151,10 @@ public abstract class Action {
 
   public boolean isComplete() {
     return complete;
+  }
+
+  public void resetComplete() {
+    complete = false;
   }
 
 }

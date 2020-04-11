@@ -58,7 +58,7 @@ public abstract class Player extends AbstractBomberObject implements Disposable 
    * The player's current speed level. To avoid having the player jump over walls dues to too
    * much computation using the velocity values, the maximum speed level is up to 5.
    */
-  protected float speedLevel = 5f;
+  protected float speedLevel = 4f;
 
   /**
    * The current scale value, provided on the creation of this object, relevant for the creation
@@ -159,6 +159,14 @@ public abstract class Player extends AbstractBomberObject implements Disposable 
 
   }
 
+  public void setBombStock(int bombStock) {
+    this.bombStock = bombStock;
+  }
+
+  public void setFirePower(int firePower) {
+    this.firePower = firePower;
+  }
+
   private void loadAsset(String spriteSheetPath) {
 
     spriteSheet = new Texture(spriteSheetPath);
@@ -217,6 +225,11 @@ public abstract class Player extends AbstractBomberObject implements Disposable 
     bombs.removeValue(bomb, false);
     BoardState.getInstance().removeFromBoard(bomb);
 
+  }
+
+  public int getRemainingBombs() {
+
+    return bombStock - bombs.size;
   }
 
   public Rectangle getBounds() {
