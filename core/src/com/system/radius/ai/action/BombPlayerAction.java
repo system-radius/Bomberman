@@ -2,6 +2,7 @@ package com.system.radius.ai.action;
 
 import com.system.radius.ai.Ai;
 import com.system.radius.ai.Node;
+import com.system.radius.enums.PlayerState;
 import com.system.radius.objects.players.Player;
 import com.system.radius.utils.BombUtils;
 import com.system.radius.utils.BombermanLogger;
@@ -11,7 +12,8 @@ import java.util.List;
 
 public class BombPlayerAction extends Action {
 
-  private static final BombermanLogger LOGGER = new BombermanLogger(BombPlayerAction.class.getSimpleName());
+  private static final BombermanLogger LOGGER =
+      new BombermanLogger(BombPlayerAction.class.getSimpleName());
 
   public BombPlayerAction(Ai ai, Action... chained) {
     super(ai, chained);
@@ -163,7 +165,10 @@ public class BombPlayerAction extends Action {
     List<Player> players = boardState.getPlayers();
     for (Player enemy : players) {
 
-      if (player.equals(enemy)) {
+      PlayerState playerState = enemy.getPlayerState();
+      if (player.equals(enemy) ||
+          (PlayerState.DYING.equals(playerState) || PlayerState.DEAD.equals(playerState))) {
+        // Disregard self, enemies that are dying, or enemies that are dead.
         continue;
       }
 
