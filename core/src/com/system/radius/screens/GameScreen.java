@@ -100,7 +100,9 @@ public class GameScreen extends AbstractScreen {
       default:
         if (allowPlayer) {
           // Create a player instance if allowed.
-          boardState.addPlayer(new Player1(1f * scale, 1f * scale, scale));
+          Player player = new Player1(1f * scale, 1f * scale, scale);
+          boardState.addPlayer(player);
+
           break;
         }
 
@@ -194,7 +196,6 @@ public class GameScreen extends AbstractScreen {
 
     spriteBatch.setProjectionMatrix(camera.projection);
     spriteBatch.setTransformMatrix(camera.view);
-    drawDebug(delta);
 
     spriteBatch.begin();
     drawPlayer(delta);
@@ -203,6 +204,7 @@ public class GameScreen extends AbstractScreen {
     }
     spriteBatch.end();
 
+    drawDebug(delta);
   }
 
   private void drawDebug(float delta) {
