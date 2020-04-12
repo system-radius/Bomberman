@@ -9,18 +9,19 @@ import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Circle;
 import com.badlogic.gdx.math.Intersector;
 import com.badlogic.gdx.math.Rectangle;
-import com.badlogic.gdx.physics.box2d.World;
 import com.system.radius.objects.blocks.Block;
 import com.system.radius.objects.board.BoardState;
 import com.system.radius.objects.board.WorldConstants;
 import com.system.radius.objects.players.Player;
+import com.system.radius.utils.BombermanLogger;
 import com.system.radius.utils.DebugUtils;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
 public abstract class Bomb extends Block {
+
+  private static final BombermanLogger LOGGER = new BombermanLogger(Bomb.class.getSimpleName());
 
   protected static final float FRAME_DURATION_BREATHING = 1f / 5f;
 
@@ -259,13 +260,12 @@ public abstract class Bomb extends Block {
     float scale = WorldConstants.WORLD_SCALE;
     fireStreamNorthBound = new Rectangle(exactX * scale, (exactY + 1) * scale, scale,
         (rangeNorth - 1) * scale);
-    fireStreamSouthBound = new Rectangle(exactX * scale, exactY * scale, scale,
-        -(rangeSouth - 1) * scale);
-    fireStreamWestBound = new Rectangle(exactX * scale, exactY * scale, -(rangeWest - 1) * scale,
-        scale);
+    fireStreamSouthBound = new Rectangle(exactX * scale, (exactY - (rangeSouth - 1)) * scale,
+        scale, (rangeSouth - 1) * scale);
+    fireStreamWestBound = new Rectangle((exactX - (rangeWest - 1)) * scale, exactY * scale,
+        (rangeWest - 1) * scale, scale);
     fireStreamEastBound = new Rectangle((exactX + 1) * scale, exactY * scale,
-        (rangeEast - 1) * scale,
-        scale);
+        (rangeEast - 1) * scale, scale);
 
     for (int i = 1; i <= totalRange; i++) {
 
@@ -288,8 +288,27 @@ public abstract class Bomb extends Block {
 
   }
 
+  /**
+   * Attempts to burn the player. The player is actually burned if the burn collision rectangle
+   * touches any of the fire collision rectangle of this bomb.
+   *
+   * @param player - A player to be burned.
+   */
   protected void attemptPlayerBurn(Player player) {
 
+    LOGGER.info("Attempting to burn player...");
+
+    Rectangle rect = player.getBurnCollision();
+    if (Intersector.overlaps(fireStreamEastBound, rect) ||
+        Intersector.overlaps(fireStreamWestBound, rect) ||
+        Intersector.overlaps(fireStreamNorthBound, rect) ||
+        Intersector.overlaps(fireStreamSouthBound, rect) ||
+        Intersector.overlaps(rect, bounds)) {
+
+      LOGGER.info("Burn player succeeded!");
+      // The player will only burn if they touch any of the fire bounds.
+      player.burn();
+    }
 
   }
 
@@ -451,6 +470,15 @@ public abstract class Bomb extends Block {
       if (EXPLOSION_TIMER <= lapsedTime - explosionTime) {
         owner.removeBomb(this);
         exploded = true;
+      }
+    }
+
+    if (exploding) {
+
+      // While this bomb is exploding, always attempt to burn players.
+      BoardState boardState = BoardState.getInstance();
+      for (Player player : boardState.getPlayers()) {
+        attemptPlayerBurn(player);
       }
     }
 
