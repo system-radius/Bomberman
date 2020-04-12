@@ -14,22 +14,7 @@ public class Player1 extends Player {
   }
 
   @Override
-  public void burn() {
-
-  }
-
-  @Override
   public void update(float delta) {
     super.update(delta);
-
-    x += velX * delta;
-    y += velY * delta;
-
-    // Consume the velocity
-//    velX = velY = 0;
-
-    updateBounds();
-
-    collide(BoardState.getInstance().getSurroundingBlocks(this));
   }
 }
