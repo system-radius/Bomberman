@@ -7,6 +7,7 @@ import com.system.radius.ai.action.Action;
 import com.system.radius.ai.action.BombBlocksAction;
 import com.system.radius.ai.action.BombPlayerAction;
 import com.system.radius.ai.action.DefenseAction;
+import com.system.radius.enums.PlayerState;
 import com.system.radius.objects.board.BoardState;
 import com.system.radius.objects.board.WorldConstants;
 import com.system.radius.objects.players.Player;
@@ -33,13 +34,15 @@ public class Ai {
 
   private Player player;
 
+  private Node currentMove;
+
+  private Action currentAction;
+
   private long lastPathChange = 0;
 
   private boolean consumedMove = true;
 
-  private Node currentMove;
-
-  private Action currentAction;
+  private boolean reset = false;
 
   private int[][] board;
 
@@ -175,6 +178,17 @@ public class Ai {
 
   }
 
+  private void reset() {
+
+    reset = false;
+    currentAction = null;
+    currentPath = null;
+    currentMove = null;
+
+    lastPathChange = 0;
+
+  }
+
   public Player getPlayer() {
     return player;
   }
@@ -185,20 +199,34 @@ public class Ai {
 
   public void update(float delta) {
 
-    if (System.currentTimeMillis() - lastPathChange >= PATH_CHANGE_INTERVAL) {
-      String actionClass = currentAction != null ? currentAction.getClass().getSimpleName() : null;
-      LOGGER.info(" = = = = = [" + actionClass + "]");
-      lastPathChange = System.currentTimeMillis();
+    PlayerState playerState = player.getPlayerState();
 
-      // Create a representation of the board for the actions to be evaluated.
-      // The board should be updated every time something has happened.
-      board = boardState.constructBoardRep(player);
+    if (!PlayerState.DYING.equals(playerState) && !PlayerState.DEAD.equals(playerState)) {
+
+      if (reset) {
+
+      }
+
+      // The following can only be done while the player is alive.
+      if (System.currentTimeMillis() - lastPathChange >= PATH_CHANGE_INTERVAL) {
+        String actionClass = currentAction != null ?
+            currentAction.getClass().getSimpleName() : null;
+        LOGGER.info(" = = = = = [" + actionClass + "]");
+        lastPathChange = System.currentTimeMillis();
+
+        // Create a representation of the board for the actions to be evaluated.
+        // The board should be updated every time something has happened.
+        board = boardState.constructBoardRep(player);
 
 //      AStarUtils.printMaze(board);
-      decide();
+        decide();
+      }
+
+      move();
+    } else {
+      reset = true;
     }
 
-    move();
     player.update(delta);
   }
 
