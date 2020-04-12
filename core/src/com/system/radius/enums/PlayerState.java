@@ -4,6 +4,10 @@ public enum PlayerState {
 
   IDLE,
 
-  WALKING;
+  WALKING,
+
+  DYING,
+
+  DEAD
 
 }
