@@ -509,6 +509,7 @@ public abstract class Player extends AbstractBomberObject implements Disposable 
   @Override
   public void update(float delta) {
 
+    animationElapsedTime += delta;
     for (Bomb bomb : bombs) {
       bomb.update(delta);
     }
@@ -552,13 +553,11 @@ public abstract class Player extends AbstractBomberObject implements Disposable 
   }
 
   @Override
-  public void draw(Batch batch, float delta) {
+  public void draw(Batch batch) {
 
     for (Bomb bomb : bombs) {
-      bomb.draw(batch, delta);
+      bomb.draw(batch);
     }
-
-    animationElapsedTime += delta;
 
     switch (playerState) {
       case WALKING:
@@ -580,10 +579,10 @@ public abstract class Player extends AbstractBomberObject implements Disposable 
   }
 
   @Override
-  public void drawDebug(ShapeRenderer shapeRenderer, float delta) {
+  public void drawDebug(ShapeRenderer shapeRenderer) {
 
     for (Bomb bomb : bombs) {
-      bomb.drawDebug(shapeRenderer, delta);
+      bomb.drawDebug(shapeRenderer);
     }
 
     shapeRenderer.setColor(Color.TEAL);
