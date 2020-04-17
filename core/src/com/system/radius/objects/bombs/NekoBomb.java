@@ -17,15 +17,14 @@ public class NekoBomb extends Bomb {
   protected void loadAssets() {
     super.loadAssets();
 
-    TextureRegion[][] allFrames = TextureRegion.split(spriteSheet, 32, 32);
-    TextureRegion[] nekoFrames = new TextureRegion[allFrames[0].length];
+    TextureRegion[] nekoFrames = new TextureRegion[BOMB_REGIONS[0].length];
 
-    System.arraycopy(allFrames[2], 0, nekoFrames, 0, nekoFrames.length);
+    System.arraycopy(BOMB_REGIONS[2], 0, nekoFrames, 0, nekoFrames.length);
     breathingAnimation = new Animation<>(FRAME_DURATION_BREATHING, nekoFrames);
     breathingAnimation.setPlayMode(Animation.PlayMode.LOOP);
 
     TextureRegion[] headExFrames = new TextureRegion[2];
-    System.arraycopy(allFrames[3], 0, headExFrames, 0, 2);
+    System.arraycopy(BOMB_REGIONS[3], 0, headExFrames, 0, 2);
     headExAnimation = new Animation<>(FRAME_DURATION_EXPLODING, headExFrames);
     headExAnimation.setPlayMode(Animation.PlayMode.LOOP);
   }
