@@ -117,7 +117,7 @@ public class SnakeScreen extends AbstractScreen {
     }
   }
 
-  public void draw(float delta) {
+  public void draw() {
 
     Gdx.gl.glClearColor(color.r, color.g, color.b, color.a);
     Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
