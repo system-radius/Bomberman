@@ -49,6 +49,8 @@ public class Ai {
     initializeActions();
 
     player.setSpeed(3);
+    player.setFirePower(3);
+    player.setBombStock(5);
   }
 
   private void initializeActions() {
@@ -89,7 +91,7 @@ public class Ai {
     if (todo != null) {
       currentAction = todo;
       currentPath = currentAction.getActionPath();
-    } else {
+    } else if (currentPath != null) {
       currentPath.clear();
     }
 
@@ -240,13 +242,13 @@ public class Ai {
 
   }
 
-  public void draw(Batch batch, float delta) {
-    player.draw(batch, delta);
+  public void draw(Batch batch) {
+    player.draw(batch);
   }
 
-  public void drawDebug(ShapeRenderer shapeRenderer, float delta) {
+  public void drawDebug(ShapeRenderer shapeRenderer) {
 
-    player.drawDebug(shapeRenderer, delta);
+    player.drawDebug(shapeRenderer);
 
     if (currentPath == null) {
       return;
