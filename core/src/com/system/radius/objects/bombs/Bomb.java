@@ -296,8 +296,6 @@ public abstract class Bomb extends Block {
    */
   protected void attemptPlayerBurn(Player player) {
 
-    LOGGER.info("Attempting to burn player...");
-
     Rectangle rect = player.getBurnCollision();
     if (Intersector.overlaps(fireStreamEastBound, rect) ||
         Intersector.overlaps(fireStreamWestBound, rect) ||
@@ -305,7 +303,6 @@ public abstract class Bomb extends Block {
         Intersector.overlaps(fireStreamSouthBound, rect) ||
         Intersector.overlaps(rect, bounds)) {
 
-      LOGGER.info("Burn player succeeded!");
       // The player will only burn if they touch any of the fire bounds.
       player.burn();
     }

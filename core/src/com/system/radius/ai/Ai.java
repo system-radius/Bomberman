@@ -24,7 +24,7 @@ public class Ai {
 
   private static final BombermanLogger LOGGER = new BombermanLogger(Ai.class.getSimpleName());
 
-  private static final long PATH_CHANGE_INTERVAL = 100;
+  private static final float PATH_CHANGE_INTERVAL = 0.1f;
 
   private BoardState boardState = BoardState.getInstance();
 
@@ -34,13 +34,9 @@ public class Ai {
 
   private Player player;
 
-  private Node currentMove;
-
   private Action currentAction;
 
-  private long lastPathChange = 0;
-
-  private boolean consumedMove = true;
+  private float lastPathChange = 0;
 
   private boolean reset = false;
 
@@ -120,12 +116,10 @@ public class Ai {
 
   }
 
-  private void move() {
+  private void move(float delta) {
 
-    if (consumedMove) {
-      currentMove = currentPath != null && currentPath.size() > 0 ? currentPath.remove(0) : null;
-      consumedMove = false;
-    }
+    // Simply retrieve the first move from the path.
+    Node currentMove = currentPath != null && currentPath.size() > 0 ? currentPath.get(0) : null;
 
     if (currentMove == null) {
 
@@ -133,7 +127,6 @@ public class Ai {
       // based on the specified action.
       this.player.setVelX(0);
       this.player.setVelY(0);
-      consumedMove = true;
 
       if (currentAction != null) {
         currentAction.act();
@@ -160,17 +153,32 @@ public class Ai {
     float playerX = player.getX();
     float playerY = player.getY();
 
-
     float speed = player.getSpeed();
-    int speedLevel = (int) player.getSpeedLevel() / 2;
+    float dSpeed = speed * delta;
 
-    float velX = (int) playerX > targetX + speedLevel ? -speed :
-        (int) playerX < targetX - speedLevel ? speed : 0;
-    float velY = (int) playerY > targetY + speedLevel ? -speed :
-        (int) playerY < targetY - speedLevel ? speed : 0;
+    float velX = 0;
+    float diffX = targetX - playerX;
+    if (playerX > targetX) {
+      // If the player x modified by the current speed will pass the target X,
+      // assign the difference between the last x and the target X.
+      velX = playerX - dSpeed > targetX ? -speed : diffX;
+    } else if (playerX < targetX) {
+      velX = playerX + dSpeed < targetX ? speed : diffX;
+    }
 
-    if (velX == 0 && velY == 0) {
-      consumedMove = true;
+    float velY = 0;
+    float diffY = targetY - playerY;
+    if (playerY > targetY) {
+      velY = playerY - dSpeed > targetY ? -speed : diffY;
+    } else if (playerY < targetY) {
+      velY = playerY + dSpeed < targetY ? speed : diffY;
+    }
+
+    float speedLevel = player.getSpeedLevel();
+    if (Math.abs(velX) < speedLevel && Math.abs(velY) < speedLevel) {
+      // Remove the movement node from the action path if there is no movement.
+      currentPath.remove(0);
+      velX = velY = 0;
     }
 
     this.player.setVelX(velX);
@@ -183,7 +191,6 @@ public class Ai {
     reset = false;
     currentAction = null;
     currentPath = null;
-    currentMove = null;
 
     lastPathChange = 0;
 
@@ -204,15 +211,16 @@ public class Ai {
     if (!PlayerState.DYING.equals(playerState) && !PlayerState.DEAD.equals(playerState)) {
 
       if (reset) {
-
+        reset();
       }
 
       // The following can only be done while the player is alive.
-      if (System.currentTimeMillis() - lastPathChange >= PATH_CHANGE_INTERVAL) {
+      lastPathChange += delta;
+      if (lastPathChange >= PATH_CHANGE_INTERVAL) {
         String actionClass = currentAction != null ?
             currentAction.getClass().getSimpleName() : null;
         LOGGER.info(" = = = = = [" + actionClass + "]");
-        lastPathChange = System.currentTimeMillis();
+        lastPathChange %= PATH_CHANGE_INTERVAL;
 
         // Create a representation of the board for the actions to be evaluated.
         // The board should be updated every time something has happened.
@@ -222,12 +230,14 @@ public class Ai {
         decide();
       }
 
-      move();
+      move(delta);
     } else {
       reset = true;
     }
 
+    // Update the player.
     player.update(delta);
+
   }
 
   public void draw(Batch batch, float delta) {
@@ -235,6 +245,8 @@ public class Ai {
   }
 
   public void drawDebug(ShapeRenderer shapeRenderer, float delta) {
+
+    player.drawDebug(shapeRenderer, delta);
 
     if (currentPath == null) {
       return;
