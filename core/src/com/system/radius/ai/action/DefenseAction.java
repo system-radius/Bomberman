@@ -17,8 +17,6 @@ public class DefenseAction extends MultiTargetAction {
 
   private List<Node> possibleTargets = new ArrayList<>();
 
-  private boolean safe;
-
   public DefenseAction(Ai ai, Action... chained) {
     super(ai, chained);
   }
@@ -29,17 +27,16 @@ public class DefenseAction extends MultiTargetAction {
     int spacesNear = 0;
     int range = player.getFirePower();
 
-    safe = false;
     target = null;
     for (Node node : possibleTargets) {
-      if (source.toString().equals(node.toString())) {
-        // There will be no need to update the action path as the current target node is reached.
-        // Once the AI is safe, the current values for the fire path in the hypothetical board
-        // will be turned into blockers. Further added bombs after this should not be affected.
-        safe = true;
-        actionPath = new ArrayList<>();
-        break;
-      }
+//      if (source.toString().equals(node.toString())) {
+//        // There will be no need to update the action path as the current target node is reached.
+//        // Once the AI is safe, the current values for the fire path in the hypothetical board
+//        // will be turned into blockers. Further added bombs after this should not be affected.
+//        safe = true;
+//        actionPath = new ArrayList<>();
+//        break;
+//      }
 
       int spacesCounter = pathFinder.searchSpaces(hypotheticalBoard, node, range).size();
       List<Node> path = pathFinder.findShortestPath(hypotheticalBoard, source, node);
@@ -83,12 +80,12 @@ public class DefenseAction extends MultiTargetAction {
 
     boolean chained = parentBoard != null;
     hypotheticalBoard = boardState.copyBoard(ai.getBoard());
-    if (!chained) {
-      LOGGER.info("Checking action doability from AI.");
-    } else {
-      LOGGER.info("Checking action doability from parent.");
+//    if (!chained) {
+//      LOGGER.info("Checking action doability from AI.");
+//    } else {
+//      LOGGER.info("Checking action doability from parent.");
 //      AStarUtils.printMaze(parentBoard, hypotheticalBoard);
-    }
+//    }
 
     boardState.adaptBoard(hypotheticalBoard, parentBoard);
 
@@ -121,22 +118,22 @@ public class DefenseAction extends MultiTargetAction {
   public boolean isTargetAcquired() {
 
     possibleTargets.clear();
-    LOGGER.info("Cleared safety spaces: " + possibleTargets.size());
+//    LOGGER.info("Cleared safety spaces: " + possibleTargets.size());
     int detectionRange = (int) Math.max(WorldConstants.WORLD_WIDTH, WorldConstants.WORLD_HEIGHT);
 
     List<Node> emptySpaces = pathFinder.searchSpaces(hypotheticalBoard,
         NodeUtils.createNode(player), detectionRange);
 
     int movementCost = (int) Player.SPEED_COUNTER - (int) player.getSpeedLevel();
-    LOGGER.info("Empty spaces: " + emptySpaces.size() + ", getting targets with: " + movementCost);
+//    LOGGER.info("Empty spaces: " + emptySpaces.size() + ", getting targets with: " + movementCost);
 
     for (Node space : emptySpaces) {
       int x = space.getX();
       int y = space.getY();
 
-      LOGGER.info("Comparing: " + hypotheticalBoard[y][x] + " vs. " + movementCost);
+//      LOGGER.info("Comparing: " + hypotheticalBoard[y][x] + " vs. " + movementCost);
       if (hypotheticalBoard[y][x] == movementCost || hypotheticalBoard[y][x] == 0) {
-        LOGGER.info("Adding safe space!");
+//        LOGGER.info("Adding safe space!");
         hypotheticalBoard[y][x] = 0;
         possibleTargets.add(space);
       }
@@ -152,18 +149,14 @@ public class DefenseAction extends MultiTargetAction {
     // Well, checking for another action possibility could be done here.
     // Especially since only in this action are the boards tagged with blocked fire paths.
 
-    LOGGER.info("Attempting to act. Is AI safe: " + safe);
-    // Force the AI to check if another action is doable?
-    if (!safe) {
-      // Cannot act if the AI is not safe.
-      return;
-    }
+//    LOGGER.info("Attempting to act. Is AI safe: " + safe);
 
+    // Once this act method is called, it is automatically assumed that the AI is already safe.
     blockFirePaths();
     Node sourceNode = NodeUtils.createNode(player);
     for (Action action : chainedActions) {
 
-      LOGGER.info("Checking for doability of action: " + action.getClass().getSimpleName());
+//      LOGGER.info("Checking for doability of action: " + action.getClass().getSimpleName());
       if (action.isDoable(hypotheticalBoard, sourceNode)) {
         // Another action can be done, this defense action is complete.
 //        LOGGER.info("Action is doable with the following maze: ");
