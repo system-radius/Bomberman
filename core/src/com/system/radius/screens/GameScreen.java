@@ -4,9 +4,11 @@ import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.InputMultiplexer;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.MathUtils;
+import com.badlogic.gdx.physics.box2d.World;
 import com.badlogic.gdx.utils.Logger;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
@@ -19,6 +21,7 @@ import com.system.radius.objects.blocks.HardBlock;
 import com.system.radius.objects.blocks.SoftBlock;
 import com.system.radius.objects.board.BoardState;
 import com.system.radius.objects.board.WorldConstants;
+import com.system.radius.objects.bombs.Bomb;
 import com.system.radius.objects.players.Player;
 import com.system.radius.objects.players.Player1;
 import com.system.radius.utils.BombermanLogger;
@@ -49,9 +52,15 @@ public class GameScreen extends AbstractScreen {
 
   private boolean randomize = true;
 
+  private boolean allowDebug = false;
+
   public GameScreen(Game game) {
     super(game, WorldConstants.WORLD_WIDTH, WorldConstants.WORLD_HEIGHT,
         WorldConstants.WORLD_SCALE);
+
+//    color = Color.GOLD;
+    color = allowDebug ? Color.BLACK : new Color(0xcca483ff);
+
   }
 
   public void reset() {
@@ -192,55 +201,77 @@ public class GameScreen extends AbstractScreen {
   }
 
   @Override
-  public void draw(float delta) {
+  public void draw() {
 
     spriteBatch.setProjectionMatrix(camera.projection);
     spriteBatch.setTransformMatrix(camera.view);
 
     spriteBatch.begin();
-    drawPlayer(delta);
+
+    drawPlayer();
     for (Ai ai : ais) {
-      ai.draw(spriteBatch, delta);
+      ai.draw(spriteBatch);
     }
+
+    drawGrid();
     spriteBatch.end();
 
-    drawDebug(delta);
+    if (allowDebug) {
+      drawDebug();
+    }
   }
 
-  private void drawDebug(float delta) {
+  private void drawDebug() {
     shapeRenderer.setProjectionMatrix(camera.projection);
     shapeRenderer.setTransformMatrix(camera.view);
     shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
 
-    drawGrid(delta);
+    drawGridDebug();
 
     for (Player player : players) {
-      player.drawDebug(shapeRenderer, delta);
+      player.drawDebug(shapeRenderer);
     }
 
     for (Ai ai : ais) {
-      ai.drawDebug(shapeRenderer, delta);
+      ai.drawDebug(shapeRenderer);
     }
 
     shapeRenderer.end();
   }
 
-  private void drawPlayer(float delta) {
+  private void drawPlayer() {
 
     for (Player player : players) {
-      player.draw(spriteBatch, delta);
+      player.draw(spriteBatch);
     }
 
   }
 
-  private void drawGrid(float delta) {
+  private void drawGrid() {
+
+    BoardState boardState = BoardState.getInstance();
+    for (int x = 0; x < worldWidth; x++) {
+      for (int y = 0; y < worldHeight; y++) {
+
+        if (boardState.getChar(x, y) == WorldConstants.BOARD_EMPTY ||
+            boardState.getChar(x, y) == WorldConstants.BOARD_BOMB) {
+          continue;
+        }
+        boardState.getObject(x, y).draw(spriteBatch);
+
+      }
+    }
+
+  }
+
+  private void drawGridDebug() {
 
     BoardState boardState = BoardState.getInstance();
     for (int x = 0; x < worldWidth; x++) {
       for (int y = 0; y < worldHeight; y++) {
 
         if (boardState.getChar(x, y) != WorldConstants.BOARD_EMPTY) {
-          boardState.getObject(x, y).drawDebug(shapeRenderer, delta);
+          boardState.getObject(x, y).drawDebug(shapeRenderer);
         }
 
       }
@@ -251,6 +282,8 @@ public class GameScreen extends AbstractScreen {
   @Override
   public void dispose() {
     shapeRenderer.dispose();
+    Block.BLOCKS_SPRITE_SHEET.dispose();
+    Bomb.BOMB_SPRITE_SHEET.dispose();
   }
 
   private void updateCamera() {
