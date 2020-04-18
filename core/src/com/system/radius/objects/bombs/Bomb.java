@@ -21,6 +21,11 @@ import java.util.List;
 
 public abstract class Bomb extends Block {
 
+  public static final Texture BOMB_SPRITE_SHEET = new Texture("neko/img/neko_sprite_sheet.png");
+
+  protected static final TextureRegion[][] BOMB_REGIONS =
+      TextureRegion.split(BOMB_SPRITE_SHEET, 32, 32);
+
   private static final BombermanLogger LOGGER = new BombermanLogger(Bomb.class.getSimpleName());
 
   protected static final float FRAME_DURATION_BREATHING = 1f / 5f;
@@ -114,7 +119,6 @@ public abstract class Bomb extends Block {
     eastRect = new Rectangle(x + width - thinWidth, y + thinHeight, thinWidth,
         height - (thinHeight * 2));
 
-    spriteSheet = new Texture(path);
     loadAssets();
 
     players = BoardState.getInstance().getPlayers();
@@ -454,6 +458,7 @@ public abstract class Bomb extends Block {
   @Override
   public void update(float delta) {
 
+    animationElapsedTime += delta;
     long lapsedTime = System.currentTimeMillis();
 
     if (!exploding) {
@@ -497,9 +502,8 @@ public abstract class Bomb extends Block {
   }
 
   @Override
-  public void draw(Batch batch, float delta) {
+  public void draw(Batch batch) {
 
-    animationElapsedTime += delta;
     if (!exploding) {
       batch.draw(breathingAnimation.getKeyFrame(animationElapsedTime), getX(), getY(), getWidth(),
           getHeight());
@@ -512,7 +516,7 @@ public abstract class Bomb extends Block {
   }
 
   @Override
-  public void drawDebug(ShapeRenderer shapeRenderer, float delta) {
+  public void drawDebug(ShapeRenderer shapeRenderer) {
 
 //    shapeRenderer.setColor(Color.RED);
 //

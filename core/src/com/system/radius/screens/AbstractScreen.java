@@ -17,7 +17,7 @@ public abstract class AbstractScreen extends ScreenAdapter {
 
   protected SpriteBatch spriteBatch = new SpriteBatch();
 
-  protected Color color = Color.BLACK;
+  protected Color color = Color.GRAY;
 
   protected int screenWidth = Gdx.graphics.getWidth();
 
@@ -66,16 +66,15 @@ public abstract class AbstractScreen extends ScreenAdapter {
   /**
    * Draw the game objects.
    *
-   * @param delta - The amount of change that has passed.
    */
-  public abstract void draw(float delta);
+  public abstract void draw();
 
   @Override
   public final void render(float delta) {
     update(delta);
 
     clearScreen();
-    draw(delta);
+    draw();
   }
 
 }

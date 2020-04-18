@@ -48,13 +48,12 @@ public abstract class GameObject {
 
   /**
    * The method for drawing this object.
+   *  @param batch - The batch object used for drawing.
    *
-   * @param batch - The batch object used for drawing.
-   * @param delta - The amount of change that has passed.
    */
-  public abstract void draw(Batch batch, float delta);
+  public abstract void draw(Batch batch);
 
-  public abstract void drawDebug(ShapeRenderer shapeRenderer, float delta);
+  public abstract void drawDebug(ShapeRenderer shapeRenderer);
 
   public float getX() {
     return x;

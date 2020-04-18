@@ -146,7 +146,7 @@ public class StartScreen extends AbstractScreen {
   }
 
   @Override
-  public void draw(float delta) {
+  public void draw() {
 
     stage.draw();
 

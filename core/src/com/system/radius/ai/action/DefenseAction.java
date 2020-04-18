@@ -17,6 +17,8 @@ public class DefenseAction extends MultiTargetAction {
 
   private List<Node> possibleTargets = new ArrayList<>();
 
+  private int lastCost = 0;
+
   public DefenseAction(Ai ai, Action... chained) {
     super(ai, chained);
   }
@@ -27,7 +29,11 @@ public class DefenseAction extends MultiTargetAction {
     int spacesNear = 0;
     int range = player.getFirePower();
 
-    target = null;
+    if (lastCost != getBoardCost(target)) {
+      // Reset the target if there is a change in the cost being tracked.
+      target = null;
+    }
+
     for (Node node : possibleTargets) {
 //      if (source.toString().equals(node.toString())) {
 //        // There will be no need to update the action path as the current target node is reached.
@@ -51,9 +57,22 @@ public class DefenseAction extends MultiTargetAction {
         target = node;
         actionPath = path;
         spacesNear = spacesCounter;
+
+        lastCost = getBoardCost(target);
       }
     }
 
+  }
+
+  private int getBoardCost(Node node) {
+    if (node == null) {
+      return -1;
+    }
+
+    int targetX = node.getX();
+    int targetY = node.getY();
+
+    return hypotheticalBoard[targetY][targetX];
   }
 
   private void blockFirePaths() {
@@ -125,7 +144,8 @@ public class DefenseAction extends MultiTargetAction {
         NodeUtils.createNode(player), detectionRange);
 
     int movementCost = (int) Player.SPEED_COUNTER - (int) player.getSpeedLevel();
-//    LOGGER.info("Empty spaces: " + emptySpaces.size() + ", getting targets with: " + movementCost);
+//    LOGGER.info("Empty spaces: " + emptySpaces.size() + ", getting targets with: " +
+//    movementCost);
 
     for (Node space : emptySpaces) {
       int x = space.getX();
@@ -163,8 +183,14 @@ public class DefenseAction extends MultiTargetAction {
 //        AStarUtils.printMaze(hypotheticalBoard);
         activeChainedAction = action;
         complete = true;
+        onComplete();
         break;
       }
     }
+  }
+
+  @Override
+  public void onComplete() {
+    target = null;
   }
 }

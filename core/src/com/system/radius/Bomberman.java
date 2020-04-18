@@ -2,9 +2,7 @@ package com.system.radius;
 
 import com.badlogic.gdx.Game;
 import com.system.radius.enums.ScreenType;
-import com.system.radius.flappeBee.FlapScreen;
 import com.system.radius.managers.ScreenManager;
-import com.system.radius.screens.StartScreen;
 import com.system.radius.utils.ConfigUtils;
 
 public class Bomberman extends Game {

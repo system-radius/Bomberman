@@ -1,6 +1,9 @@
 package com.system.radius.objects.blocks;
 
 import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.g2d.Animation;
+import com.badlogic.gdx.graphics.g2d.Batch;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.system.radius.objects.board.BoardState;
 import com.system.radius.objects.board.WorldConstants;
@@ -13,6 +16,14 @@ public class SoftBlock extends Block {
   }
 
   @Override
+  protected void initialize() {
+    TextureRegion[] frames = new TextureRegion[3];
+    System.arraycopy(REGIONS[0], 0, frames, 0, 3);
+
+    animation = new Animation<>(1f / 3f, frames);
+  }
+
+  @Override
   public void burn() {
 
     if (burning) {
@@ -22,7 +33,6 @@ public class SoftBlock extends Block {
     life--;
     if (life == 0) {
       burning = true;
-      System.out.println("Burned!");
       burnStart = System.currentTimeMillis();
     }
   }
@@ -34,6 +44,7 @@ public class SoftBlock extends Block {
       return;
     }
 
+    animationElapsedTime += delta;
     if (System.currentTimeMillis() - burnStart >= DESTROY_TIMER) {
       BoardState.getInstance().removeFromBoard(this);
     }
@@ -41,7 +52,19 @@ public class SoftBlock extends Block {
   }
 
   @Override
-  public void drawDebug(ShapeRenderer shapeRenderer, float delta) {
+  public void draw(Batch batch) {
+
+    if (!burning) {
+      batch.draw(animation.getKeyFrames()[0], getX(), getY(), getWidth(), getHeight());
+      return;
+    }
+
+    batch.draw(animation.getKeyFrame(animationElapsedTime), getX(), getY(), getWidth(), getHeight());
+
+  }
+
+  @Override
+  public void drawDebug(ShapeRenderer shapeRenderer) {
 
     shapeRenderer.setColor(Color.MAGENTA);
 
