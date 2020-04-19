@@ -4,16 +4,12 @@ import com.system.radius.ai.Ai;
 import com.system.radius.ai.Node;
 import com.system.radius.objects.board.WorldConstants;
 import com.system.radius.utils.BombUtils;
-import com.system.radius.utils.BombermanLogger;
 import com.system.radius.utils.NodeUtils;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class BombBlocksAction extends MultiTargetAction {
-
-  private static final BombermanLogger LOGGER =
-      new BombermanLogger(BombBlocksAction.class.getSimpleName());
 
   private int targetsCount;
 

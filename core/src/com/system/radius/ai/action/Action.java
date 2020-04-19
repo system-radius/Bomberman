@@ -3,10 +3,9 @@ package com.system.radius.ai.action;
 import com.system.radius.ai.Ai;
 import com.system.radius.ai.Node;
 import com.system.radius.objects.board.BoardState;
-import com.system.radius.objects.board.WorldConstants;
-import com.system.radius.objects.bombs.Bomb;
 import com.system.radius.objects.players.Player;
 import com.system.radius.utils.AStarUtils;
+import com.system.radius.utils.BombermanLogger;
 import com.system.radius.utils.NodeUtils;
 
 import java.util.ArrayList;
@@ -14,6 +13,8 @@ import java.util.Arrays;
 import java.util.List;
 
 public abstract class Action {
+
+  protected final BombermanLogger LOGGER;
 
   /**
    * The path that will be traversed.
@@ -68,6 +69,8 @@ public abstract class Action {
   public Action(Ai ai, Action... chained) {
     this.ai = ai;
     this.player = ai.getPlayer();
+
+    LOGGER = new BombermanLogger(this.getClass().getSimpleName() + ai.getIndex());
 
     pathFinder = new AStarUtils();
     addChainedAction(chained);

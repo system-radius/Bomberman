@@ -5,15 +5,11 @@ import com.system.radius.ai.Node;
 import com.system.radius.enums.PlayerState;
 import com.system.radius.objects.players.Player;
 import com.system.radius.utils.BombUtils;
-import com.system.radius.utils.BombermanLogger;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class BombPlayerAction extends Action {
-
-  private static final BombermanLogger LOGGER =
-      new BombermanLogger(BombPlayerAction.class.getSimpleName());
 
   public BombPlayerAction(Ai ai, Action... chained) {
     super(ai, chained);

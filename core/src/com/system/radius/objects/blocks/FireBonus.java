@@ -12,13 +12,13 @@ public class FireBonus extends Bonus {
   public void applyBonus(Player player) {
 
     int nextFirePower = player.getFirePower() + 1;
+    burn();
 
     if (nextFirePower > FIRE_LIMIT) {
       return;
     }
 
     player.setFirePower(nextFirePower);
-    burn();
 
   }
 

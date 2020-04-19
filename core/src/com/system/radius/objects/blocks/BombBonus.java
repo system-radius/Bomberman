@@ -12,13 +12,13 @@ public class BombBonus extends Bonus {
   public void applyBonus(Player player) {
 
     int nextBombStock = player.getBombStock() + 1;
+    burn();
 
     if (nextBombStock > BOMB_LIMIT) {
       return;
     }
 
     player.setBombStock(nextBombStock);
-    burn();
 
   }
 }

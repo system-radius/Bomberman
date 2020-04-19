@@ -3,6 +3,7 @@ package com.system.radius.ai;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Rectangle;
+import com.system.radius.ai.action.AcquireBonusAction;
 import com.system.radius.ai.action.Action;
 import com.system.radius.ai.action.BombBlocksAction;
 import com.system.radius.ai.action.BombPlayerAction;
@@ -22,7 +23,7 @@ import java.util.List;
  */
 public class Ai {
 
-  private static final BombermanLogger LOGGER = new BombermanLogger(Ai.class.getSimpleName());
+  private final BombermanLogger LOGGER;
 
   private static final float PATH_CHANGE_INTERVAL = 0.1f;
 
@@ -42,8 +43,12 @@ public class Ai {
 
   private int[][] board;
 
-  public Ai(Player player) {
+  private int index;
 
+  public Ai(Player player, int index) {
+    LOGGER = new BombermanLogger(Ai.class.getSimpleName() + index);
+
+    this.index = index;
     this.player = player;
 
     initializeActions();
@@ -55,11 +60,13 @@ public class Ai {
     actionList = new ArrayList<>();
 
     Action defenseAction = new DefenseAction(this);
+    Action acquireBonusAction = new AcquireBonusAction(this);
     Action bombPlayerAction = new BombPlayerAction(this, defenseAction);
     Action bombBlocksAction = new BombBlocksAction(this, defenseAction);
 
-    defenseAction.addChainedAction(bombPlayerAction, bombBlocksAction);
+    defenseAction.addChainedAction(acquireBonusAction, bombPlayerAction, bombBlocksAction);
 
+    actionList.add(acquireBonusAction);
     actionList.add(bombPlayerAction);
     actionList.add(bombBlocksAction);
     actionList.add(defenseAction);
@@ -201,6 +208,10 @@ public class Ai {
 
   public int[][] getBoard() {
     return board;
+  }
+
+  public int getIndex() {
+    return index;
   }
 
   public void update(float delta) {

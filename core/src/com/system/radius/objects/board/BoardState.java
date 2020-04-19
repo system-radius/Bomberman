@@ -268,7 +268,10 @@ public class BoardState {
     for (int i = 0; i < worldHeight; i++) {
       for (int j = 0; j < worldWidth; j++) {
 
-        if (charBoard[i][j] != WorldConstants.BOARD_EMPTY) {
+        if ((charBoard[i][j] != WorldConstants.BOARD_EMPTY &&
+            charBoard[i][j] != WorldConstants.BOARD_BONUS) ||
+            (charBoard[i][j] == WorldConstants.BOARD_BOMB &&
+                ((Block)getObject(i, j)).isActiveCollision(player))) {
           // Mark everything else as unpassable.
           intBoard[i][j] = -1;
         } else {
@@ -397,5 +400,15 @@ public class BoardState {
     }
 
     return tempBoard;
+  }
+
+  public static void printMaze() {
+    for (int y = instance.boardHeight - 1; y >= 0; y--) {
+      for (int x = 0; x < instance.boardWidth; x++) {
+        System.out.print(instance.boardRep[y][x] + " ");
+      }
+
+      System.out.println();
+    }
   }
 }
