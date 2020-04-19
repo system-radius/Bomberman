@@ -48,9 +48,6 @@ public class Ai {
 
     initializeActions();
 
-    player.setSpeed(3);
-    player.setFirePower(3);
-    player.setBombStock(5);
   }
 
   private void initializeActions() {
