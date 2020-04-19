@@ -35,6 +35,10 @@ public class GameScreen extends AbstractScreen {
   private static final BombermanLogger LOGGER =
       new BombermanLogger(GameScreen.class.getSimpleName());
 
+  private static final float PAUSE_FREQUENCY = 1;
+
+  private static boolean paused = false;
+
   private ShapeRenderer shapeRenderer;
 
   private OrthographicCamera camera;
@@ -46,6 +50,8 @@ public class GameScreen extends AbstractScreen {
   private List<Player> players;
 
   private List<Ai> ais;
+
+  private float pauseFrequency = 0;
 
   private int playerCount = 4;
 
@@ -65,6 +71,8 @@ public class GameScreen extends AbstractScreen {
     LOGGER.info(" = = = = = = = = = = = = = = = = = = = = = = = = ");
     Gdx.app.setApplicationLogger(new BombermanLogger());
     Gdx.app.setLogLevel(Logger.INFO);
+
+    pauseFrequency = 0;
 
     FieldConfig.reset();
     color = allowDebug ? Color.BLACK : FieldConfig.getColorScheme();
@@ -98,13 +106,13 @@ public class GameScreen extends AbstractScreen {
     switch (playerCount) {
       case 4:
         //Bottom-right
-        ais.add(new Ai(new Player1((worldWidth - 2) * scale, 1f * scale, scale)));
+        ais.add(new Ai(new Player1((worldWidth - 2) * scale, 1f * scale, scale), 4));
       case 3:
         // Top-left
-        ais.add(new Ai(new Player1(1f * scale, (worldHeight - 2) * scale, scale)));
+        ais.add(new Ai(new Player1(1f * scale, (worldHeight - 2) * scale, scale), 3));
       case 2:
         // Top-right
-        ais.add(new Ai(new Player1((worldWidth - 2) * scale, (worldHeight - 2) * scale, scale)));
+        ais.add(new Ai(new Player1((worldWidth - 2) * scale, (worldHeight - 2) * scale, scale), 2));
       case 1:
       default:
         if (allowPlayer) {
@@ -119,7 +127,7 @@ public class GameScreen extends AbstractScreen {
 
         // Otherwise, create an AI.
         // Bottom-left
-        ais.add(new Ai(new Player1(1f * scale, 1f * scale, scale)));
+        ais.add(new Ai(new Player1(1f * scale, 1f * scale, scale), 1));
     }
 
     players = new ArrayList<>(boardState.getPlayers());
@@ -184,8 +192,16 @@ public class GameScreen extends AbstractScreen {
   @Override
   public void update(float delta) {
 
+    pauseFrequency += delta % 10;
     if (Gdx.input.isKeyPressed(Input.Keys.ESCAPE)) {
       game.setScreen(ScreenManager.getScreen(ScreenType.START, game));
+    } else if (Gdx.input.isKeyPressed(Input.Keys.ENTER) && pauseFrequency >= PAUSE_FREQUENCY) {
+      pauseFrequency = 0;
+      pauseGame();
+    }
+
+    if (paused) {
+      return;
     }
 
     boardState.updateObjects(delta);
@@ -305,5 +321,9 @@ public class GameScreen extends AbstractScreen {
 
     camera.update();
 
+  }
+
+  public static void pauseGame() {
+    paused = !paused;
   }
 }
