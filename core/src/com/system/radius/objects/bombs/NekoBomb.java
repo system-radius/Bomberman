@@ -10,7 +10,7 @@ import com.system.radius.objects.players.Player;
 public class NekoBomb extends Bomb {
 
   public NekoBomb(Player owner, float x, float y, float width, float height) {
-    super(owner, "neko/img/neko_sprite_sheet.png", x, y, width, height);
+    super(owner, x, y, width, height);
   }
 
   @Override

@@ -8,7 +8,6 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.MathUtils;
-import com.badlogic.gdx.physics.box2d.World;
 import com.badlogic.gdx.utils.Logger;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
@@ -17,6 +16,7 @@ import com.system.radius.controllers.Player1Controller;
 import com.system.radius.enums.ScreenType;
 import com.system.radius.managers.ScreenManager;
 import com.system.radius.objects.blocks.Block;
+import com.system.radius.objects.blocks.Bonus;
 import com.system.radius.objects.blocks.HardBlock;
 import com.system.radius.objects.blocks.SoftBlock;
 import com.system.radius.objects.board.BoardState;
@@ -25,6 +25,7 @@ import com.system.radius.objects.bombs.Bomb;
 import com.system.radius.objects.players.Player;
 import com.system.radius.objects.players.Player1;
 import com.system.radius.utils.BombermanLogger;
+import com.system.radius.utils.FieldConfig;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -57,10 +58,6 @@ public class GameScreen extends AbstractScreen {
   public GameScreen(Game game) {
     super(game, WorldConstants.WORLD_WIDTH, WorldConstants.WORLD_HEIGHT,
         WorldConstants.WORLD_SCALE);
-
-//    color = Color.GOLD;
-    color = allowDebug ? Color.BLACK : new Color(0xcca483ff);
-
   }
 
   public void reset() {
@@ -68,6 +65,9 @@ public class GameScreen extends AbstractScreen {
     LOGGER.info(" = = = = = = = = = = = = = = = = = = = = = = = = ");
     Gdx.app.setApplicationLogger(new BombermanLogger());
     Gdx.app.setLogLevel(Logger.INFO);
+
+    FieldConfig.reset();
+    color = allowDebug ? Color.BLACK : FieldConfig.getColorScheme();
 
     boardState = BoardState.getInstance();
     boardState.reset();
@@ -112,6 +112,8 @@ public class GameScreen extends AbstractScreen {
           Player player = new Player1(1f * scale, 1f * scale, scale);
           boardState.addPlayer(player);
 
+          player.setSpeed(2);
+
           break;
         }
 
@@ -143,7 +145,7 @@ public class GameScreen extends AbstractScreen {
         continue;
       }
 
-      boardState.addToBoard(new SoftBlock(tempX * scale, tempY * scale, scale, scale));
+      boardState.addToBoard(new SoftBlock(tempX * scale, tempY * scale, scale, scale, Bonus.hasBonus()));
     }
 
   }
@@ -284,6 +286,7 @@ public class GameScreen extends AbstractScreen {
     shapeRenderer.dispose();
     Block.BLOCKS_SPRITE_SHEET.dispose();
     Bomb.BOMB_SPRITE_SHEET.dispose();
+    Bomb.FIRE_SPRITE_SHEET.dispose();
   }
 
   private void updateCamera() {

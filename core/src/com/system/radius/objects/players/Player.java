@@ -16,6 +16,7 @@ import com.system.radius.enums.Direction;
 import com.system.radius.enums.PlayerState;
 import com.system.radius.objects.AbstractBomberObject;
 import com.system.radius.objects.blocks.Block;
+import com.system.radius.objects.blocks.Bonus;
 import com.system.radius.objects.bombs.Bomb;
 import com.system.radius.objects.bombs.NekoBomb;
 import com.system.radius.objects.board.BoardState;
@@ -36,17 +37,17 @@ public abstract class Player extends AbstractBomberObject implements Disposable 
    * The max speed + two. This is mainly used for computations that rely on the remaining speed
    * levels that are not acquired yet. Leaving with 2 on full speed.
    */
-  public static final float SPEED_COUNTER = 6f;
+  public static final float SPEED_COUNTER = 5f;
 
   /**
    * The timer until the player respawns after dying.
    */
-  private static final long DEATH_TIMER = 5000;
+  private static final float DEATH_TIMER = 3f;
 
   /**
    * The amount of time to watch the player die.
    */
-  private static final long DYING_TIMER = 2000;
+  private static final float DYING_TIMER = 2f;
 
   private final BombermanLogger LOGGER;
 
@@ -165,7 +166,7 @@ public abstract class Player extends AbstractBomberObject implements Disposable 
   /**
    * The timer to track the player's death, both dying and dead.
    */
-  private long deathTimer;
+  private float deathTimer;
 
   private float thinWidth;
 
@@ -304,6 +305,10 @@ public abstract class Player extends AbstractBomberObject implements Disposable 
     return bombStock - bombs.size;
   }
 
+  public int getBombStock() {
+    return bombStock;
+  }
+
   public Rectangle getBounds() {
     return collisionRect;
   }
@@ -418,28 +423,87 @@ public abstract class Player extends AbstractBomberObject implements Disposable 
 
     for (Block block : blocks) {
 
+
       if (!block.isActiveCollision(this)) {
+        if (block instanceof Bonus) {
+          // Bonuses should always disable collision.
+          // Apply the bonus to the player
+          ((Bonus) block).collide(this);
+        }
         continue;
       }
 
-      Rectangle blockBound = block.getBounds();
-      float blockY = block.getY();
-      float blockX = block.getX();
-      float blockH = block.getHeight();
-      float blockW = block.getWidth();
+//      collide(block);
 
-      if (Intersector.overlaps(blockBound, northRect)) {
-        this.setY(blockY - blockH);
-      } else if (Intersector.overlaps(blockBound, southRect)) {
-        this.setY(blockY + blockH);
+      switch (direction) {
+        case UP:
+        case DOWN:
+        case UP_LEFT:
+        case DOWN_RIGHT:
+          collideVertically(block);
+          break;
+        case LEFT:
+        case RIGHT:
+        case UP_RIGHT:
+        case DOWN_LEFT:
+          collideHorizontally(block);
+          break;
       }
 
-      if (Intersector.overlaps(blockBound, eastRect)) {
-        this.setX(blockX - blockW);
-      } else if (Intersector.overlaps(blockBound, westRect)) {
-        this.setX(blockX + blockW);
-      }
+    }
 
+  }
+
+  /**
+   * Checks for the collision along the X-axis first.
+   *
+   * @param block - The block to collide against.
+   */
+  public void collideHorizontally(Block block) {
+
+    Rectangle blockBound = block.getBounds();
+    float blockY = block.getY();
+    float blockX = block.getX();
+    float blockH = block.getHeight();
+    float blockW = block.getWidth();
+
+    if (Intersector.overlaps(blockBound, eastRect)) {
+      this.setX(blockX - blockW);
+    } else if (Intersector.overlaps(blockBound, westRect)) {
+      this.setX(blockX + blockW);
+    }
+
+    if (Intersector.overlaps(blockBound, northRect)) {
+      this.setY(blockY - blockH);
+    } else if (Intersector.overlaps(blockBound, southRect)) {
+      this.setY(blockY + blockH);
+    }
+
+  }
+
+  /**
+   * Checks for the collision along the Y-axis first.
+   *
+   * @param block - The block to collide against.
+   */
+  public void collideVertically(Block block) {
+
+    Rectangle blockBound = block.getBounds();
+    float blockY = block.getY();
+    float blockX = block.getX();
+    float blockH = block.getHeight();
+    float blockW = block.getWidth();
+
+    if (Intersector.overlaps(blockBound, northRect)) {
+      this.setY(blockY - blockH);
+    } else if (Intersector.overlaps(blockBound, southRect)) {
+      this.setY(blockY + blockH);
+    }
+
+    if (Intersector.overlaps(blockBound, eastRect)) {
+      this.setX(blockX - blockW);
+    } else if (Intersector.overlaps(blockBound, westRect)) {
+      this.setX(blockX + blockW);
     }
 
   }
@@ -478,6 +542,7 @@ public abstract class Player extends AbstractBomberObject implements Disposable 
     setVelX(0);
     setVelY(0);
 
+    deathTimer = 0;
     playerState = PlayerState.IDLE;
 
     // Decrease the life.
@@ -496,7 +561,6 @@ public abstract class Player extends AbstractBomberObject implements Disposable 
 
     // Upon being burned, this player is dying.
     playerState = PlayerState.DYING;
-    deathTimer = System.currentTimeMillis();
 
     animationElapsedTime = 0;
 
@@ -517,7 +581,7 @@ public abstract class Player extends AbstractBomberObject implements Disposable 
     if (!PlayerState.DYING.equals(playerState) && !PlayerState.DEAD.equals(playerState)) {
       // Setting the direction is relevant for walking and idle player states.
       setDirection();
-      if ((getVelX() != 0 || getVelY() != 0)) {
+      if ((velX != 0 || velY != 0)) {
         playerState = PlayerState.WALKING;
       } else {
         playerState = PlayerState.IDLE;
@@ -533,16 +597,15 @@ public abstract class Player extends AbstractBomberObject implements Disposable 
       return;
     }
 
-    if (PlayerState.DYING.equals(playerState) &&
-        System.currentTimeMillis() - deathTimer >= DYING_TIMER) {
+    deathTimer += delta;
+    if (PlayerState.DYING.equals(playerState) && deathTimer >= DYING_TIMER) {
       // After the timer for 'dying' has elapsed, this player is dead.
       playerState = PlayerState.DEAD;
-      deathTimer = System.currentTimeMillis();
+      deathTimer = 0;
       return;
     }
 
-    if (PlayerState.DEAD.equals(playerState) &&
-        System.currentTimeMillis() - deathTimer >= DEATH_TIMER) {
+    if (PlayerState.DEAD.equals(playerState) && deathTimer >= DEATH_TIMER) {
       // After the death timer has elapsed, respawn the player.
       if (life > 0) {
         // The player can only respawn if they still have life. The respawn will cost one life.

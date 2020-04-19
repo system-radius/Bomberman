@@ -23,8 +23,13 @@ public abstract class Bomb extends Block {
 
   public static final Texture BOMB_SPRITE_SHEET = new Texture("neko/img/neko_sprite_sheet.png");
 
+  public static final Texture FIRE_SPRITE_SHEET = new Texture("neko/img/spiralingFire.png");
+
   protected static final TextureRegion[][] BOMB_REGIONS =
       TextureRegion.split(BOMB_SPRITE_SHEET, 32, 32);
+
+  protected static final TextureRegion[][] FIRE_REGIONS =
+      TextureRegion.split(FIRE_SPRITE_SHEET, 64, 64);
 
   private static final BombermanLogger LOGGER = new BombermanLogger(Bomb.class.getSimpleName());
 
@@ -34,9 +39,9 @@ public abstract class Bomb extends Block {
 
   protected static final float FRAME_DURATION_FIRE = 1f / 7.5f;
 
-  private static final long WAIT_TIMER = 3000;
+  private static final float WAIT_TIMER = 3;
 
-  private static final long EXPLOSION_TIMER = 1000;
+  private static final float EXPLOSION_TIMER = 1;
 
   private List<Player> players;
 
@@ -54,15 +59,13 @@ public abstract class Bomb extends Block {
 
   private Rectangle eastRect;
 
-  private long creationTime;
+  private float creationTime;
 
-  private long explosionTime;
+  private float explosionTime;
 
   private boolean exploding;
 
   private boolean exploded;
-
-  private Texture fireSpriteSheet;
 
   private float totalRange;
 
@@ -100,11 +103,11 @@ public abstract class Bomb extends Block {
 
   protected Rectangle fireStreamEastBound;
 
-  public Bomb(Player owner, String path, float x, float y, float width, float height) {
+  public Bomb(Player owner, float x, float y, float width, float height) {
     super(WorldConstants.BOARD_BOMB, x, y, width, height);
 
     this.owner = owner;
-    this.creationTime = System.currentTimeMillis();
+    this.creationTime = 0;
     this.totalRange = owner.getFirePower();
 
     rep = new Circle(x + (width / 2), y + (height / 2), width / 2);
@@ -132,16 +135,13 @@ public abstract class Bomb extends Block {
 
   protected void loadAssets() {
 
-    fireSpriteSheet = new Texture("neko/img/fire.png");
-    TextureRegion[][] allFrames = TextureRegion.split(fireSpriteSheet, 16, 16);
-
-    fireStreamNorth = loadAnimation(allFrames[0], FRAME_DURATION_FIRE);
-    fireStreamSouth = loadAnimation(allFrames[1], FRAME_DURATION_FIRE);
-    fireStreamCenter = loadAnimation(allFrames[2], FRAME_DURATION_FIRE);
-    fireStreamWest = loadAnimation(allFrames[3], FRAME_DURATION_FIRE);
-    fireStreamEast = loadAnimation(allFrames[4], FRAME_DURATION_FIRE);
-    fireStreamV = loadAnimation(allFrames[5], FRAME_DURATION_FIRE);
-    fireStreamH = loadAnimation(allFrames[6], FRAME_DURATION_FIRE);
+    fireStreamNorth = loadAnimation(FIRE_REGIONS[0], FRAME_DURATION_FIRE);
+    fireStreamSouth = loadAnimation(FIRE_REGIONS[1], FRAME_DURATION_FIRE);
+    fireStreamCenter = loadAnimation(FIRE_REGIONS[2], FRAME_DURATION_FIRE);
+    fireStreamWest = loadAnimation(FIRE_REGIONS[3], FRAME_DURATION_FIRE);
+    fireStreamEast = loadAnimation(FIRE_REGIONS[4], FRAME_DURATION_FIRE);
+    fireStreamV = loadAnimation(FIRE_REGIONS[5], FRAME_DURATION_FIRE);
+    fireStreamH = loadAnimation(FIRE_REGIONS[6], FRAME_DURATION_FIRE);
 
   }
 
@@ -242,7 +242,7 @@ public abstract class Bomb extends Block {
   @Override
   public void burn() {
 
-    creationTime = System.currentTimeMillis() - WAIT_TIMER + 100;
+    creationTime = WAIT_TIMER - 0.1f;
   }
 
   private void explode() {
@@ -252,7 +252,6 @@ public abstract class Bomb extends Block {
     }
 
     // Explode this bomb.
-    explosionTime = System.currentTimeMillis();
     exploding = true;
 
     updateBounds();
@@ -373,48 +372,34 @@ public abstract class Bomb extends Block {
 
     float scale = WorldConstants.WORLD_SCALE;
 
-    if (counter < rangeNorth) {
+    if (counter + 1 < rangeNorth) {
       batch.draw(fireStreamV.getKeyFrame(animationElapsedTime), exactX * scale,
           (exactY + counter) * scale, scale, scale);
-    }
-
-    if (counter < rangeSouth) {
-      batch.draw(fireStreamV.getKeyFrame(animationElapsedTime), exactX * scale,
-          (exactY - counter) * scale, scale, scale);
-    }
-
-    if (counter < rangeWest) {
-      batch.draw(fireStreamH.getKeyFrame(animationElapsedTime), (exactX - counter) * scale,
-          exactY * scale, scale, scale);
-    }
-
-    if (counter < rangeEast) {
-      batch.draw(fireStreamH.getKeyFrame(animationElapsedTime), (exactX + counter) * scale,
-          exactY * scale, scale, scale);
-    }
-
-  }
-
-  protected void drawFireBounds(Batch batch, int counter, int exactX, int exactY) {
-
-    float scale = WorldConstants.WORLD_SCALE;
-
-    if (counter < rangeNorth) {
+    } else if (counter < rangeNorth) {
       batch.draw(fireStreamNorth.getKeyFrame(animationElapsedTime), exactX * scale,
           (exactY + counter) * scale, scale, scale);
     }
 
-    if (counter < rangeSouth) {
+    if (counter + 1 < rangeSouth) {
+      batch.draw(fireStreamV.getKeyFrame(animationElapsedTime), exactX * scale,
+          (exactY - counter) * scale, scale, scale);
+    } else if (counter < rangeSouth) {
       batch.draw(fireStreamSouth.getKeyFrame(animationElapsedTime), exactX * scale,
           (exactY - counter) * scale, scale, scale);
     }
 
-    if (counter < rangeWest) {
+    if (counter + 1 < rangeWest) {
+      batch.draw(fireStreamH.getKeyFrame(animationElapsedTime), (exactX - counter) * scale,
+          exactY * scale, scale, scale);
+    } else if (counter < rangeWest) {
       batch.draw(fireStreamWest.getKeyFrame(animationElapsedTime), (exactX - counter) * scale,
           exactY * scale, scale, scale);
     }
 
-    if (counter < rangeEast) {
+    if (counter + 1 < rangeEast) {
+      batch.draw(fireStreamH.getKeyFrame(animationElapsedTime), (exactX + counter) * scale,
+          exactY * scale, scale, scale);
+    } else if (counter < rangeEast) {
       batch.draw(fireStreamEast.getKeyFrame(animationElapsedTime), (exactX + counter) * scale,
           exactY * scale, scale, scale);
     }
@@ -429,11 +414,7 @@ public abstract class Bomb extends Block {
     int exactY = boardState.getExactY(this);
 
     for (int i = 0; i <= totalRange; i++) {
-      if (i == totalRange) {
-        drawFireBounds(batch, i, exactX, exactY);
-      } else {
-        drawFireLength(batch, i, exactX, exactY);
-      }
+      drawFireLength(batch, i, exactX, exactY);
     }
 
     batch.draw(fireStreamCenter.getKeyFrame(animationElapsedTime), getX(), getY(), getWidth(),
@@ -459,17 +440,18 @@ public abstract class Bomb extends Block {
   public void update(float delta) {
 
     animationElapsedTime += delta;
-    long lapsedTime = System.currentTimeMillis();
 
     if (!exploding) {
 
+      creationTime += delta;
       updateBounds();
-      if (lapsedTime - creationTime >= WAIT_TIMER) {
+      if (creationTime >= WAIT_TIMER) {
         explode();
       }
     } else {
 
-      if (EXPLOSION_TIMER <= lapsedTime - explosionTime) {
+      explosionTime += delta;
+      if (explosionTime >= EXPLOSION_TIMER) {
         owner.removeBomb(this);
         exploded = true;
       }
@@ -534,8 +516,6 @@ public abstract class Bomb extends Block {
   @Override
   public void dispose() {
     super.dispose();
-
-    fireSpriteSheet.dispose();
   }
 
   public boolean isExploding() {

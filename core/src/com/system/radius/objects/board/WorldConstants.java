@@ -19,6 +19,8 @@ public class WorldConstants {
 
   public static final char BOARD_BOMB = 'o';
 
+  public static final char BOARD_BONUS = 'b';
+
   public static final char BOARD_PERMA_BLOCK = 'x';
 
   public static final char BOARD_HARD_BLOCK = '#';
