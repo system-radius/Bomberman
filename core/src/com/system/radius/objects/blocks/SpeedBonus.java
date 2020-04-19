@@ -12,6 +12,7 @@ public class SpeedBonus extends Bonus {
   public void applyBonus(Player player) {
 
     float nextSpeedLevel = player.getSpeedLevel() + 0.5f;
+    burn();
 
     if (nextSpeedLevel > SPEED_LIMIT) {
       return;
@@ -20,6 +21,5 @@ public class SpeedBonus extends Bonus {
     System.out.println("Current speed: " + nextSpeedLevel);
 
     player.setSpeed(nextSpeedLevel);
-    burn();
   }
 }
