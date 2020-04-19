@@ -9,19 +9,21 @@ import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.utils.Disposable;
 import com.system.radius.objects.AbstractBomberObject;
+import com.system.radius.objects.board.BoardState;
 import com.system.radius.objects.board.WorldConstants;
 import com.system.radius.objects.players.Player;
+import com.system.radius.utils.FieldConfig;
 
 import java.util.List;
 
 public class Block extends AbstractBomberObject implements Disposable {
 
-  public static final Texture BLOCKS_SPRITE_SHEET = new Texture("neko/img/newBricks.png");
+  public static final Texture BLOCKS_SPRITE_SHEET = new Texture("neko/img/blocks.png");
 
   protected static final TextureRegion[][] REGIONS =
       TextureRegion.split(BLOCKS_SPRITE_SHEET, 32, 32);
 
-  protected final static long DESTROY_TIMER = 1000;
+  protected final static float DESTROY_TIMER = 1f;
 
   protected Animation<TextureRegion> animation;
 
@@ -35,14 +37,18 @@ public class Block extends AbstractBomberObject implements Disposable {
 
   protected boolean burning;
 
-  protected long burnStart;
+  protected boolean hasBonus;
+
+  protected float burnTimer;
 
   private float width;
 
   private float height;
 
-  public Block(char charRep, float x, float y, float width, float height) {
+  public Block(char charRep, float x, float y, float width, float height, boolean hasBonus) {
     super(charRep, x, y);
+
+    this.hasBonus = hasBonus;
 
     this.width = width;
     this.height = height;
@@ -53,6 +59,10 @@ public class Block extends AbstractBomberObject implements Disposable {
     initialize();
   }
 
+  public Block(char charRep, float x, float y, float width, float height) {
+    this(charRep, x, y, width, height, false);
+  }
+
   public Block(float x, float y, float width, float height) {
     this(WorldConstants.BOARD_PERMA_BLOCK, x, y, width, height);
   }
@@ -60,32 +70,11 @@ public class Block extends AbstractBomberObject implements Disposable {
   protected void initialize() {
 
     TextureRegion[] frames = new TextureRegion[1];
-    frames[0] = REGIONS[0][5];
+    frames[0] = REGIONS[FieldConfig.getFieldIndex()][6];
 
     animation = new Animation<>(0, frames);
 
   }
-
-//  public void collide(Player player) {
-//
-//    Rectangle playerBounds = player.getBounds();
-//
-//    float h2 = height / 2;
-//    float w2 = width / 2;
-//
-//    if (Intersector.overlaps(playerBounds, northRect)) {
-//      player.setY(this.y + height);
-//    } else if (Intersector.overlaps(playerBounds, southRect)) {
-//      player.setY(this.y - height);
-//    }
-//
-//    if (Intersector.overlaps(playerBounds, eastRect)) {
-//      player.setX(this.x + width);
-//    } else if (Intersector.overlaps(playerBounds, westRect)) {
-//      player.setX(this.x - width);
-//    }
-//
-//  }
 
   public float getWidth() {
     return width;
@@ -111,12 +100,31 @@ public class Block extends AbstractBomberObject implements Disposable {
   @Override
   public void update(float delta) {
 
+    if (!burning) {
+      return;
+    }
+
+    burnTimer += delta;
+    animationElapsedTime += delta;
+    if (burnTimer >= DESTROY_TIMER) {
+      BoardState boardState = BoardState.getInstance();
+      boardState.removeFromBoard(this);
+      if (hasBonus) {
+        boardState.addToBoard(Bonus.generateBonus(getX(), getY()));
+      }
+    }
+
   }
 
   @Override
   public void draw(Batch batch) {
 
-    batch.draw(animation.getKeyFrames()[0], getX(), getY(), width, height);
+    if (!burning) {
+      batch.draw(animation.getKeyFrames()[0], getX(), getY(), getWidth(), getHeight());
+      return;
+    }
+
+    batch.draw(animation.getKeyFrame(animationElapsedTime), getX(), getY(), getWidth(), getHeight());
 
   }
 
