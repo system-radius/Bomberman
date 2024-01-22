@@ -1,5 +1,5 @@
 android {
-    buildToolsVersion "29.0.2"
+    namespace "com.system.radius"
     compileSdkVersion 33
     sourceSets {
         main {
@@ -32,6 +32,10 @@ android {
     compileOptions {
         targetCompatibility = 1.8
         sourceCompatibility = 1.8
+    }
+    buildFeatures {
+        renderScript true
+        aidl true
     }
 }
 
